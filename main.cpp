@@ -11,12 +11,6 @@
  * The values LED4_PIN etc are defined in stm32f4_discovery.h
  * as GPIO_Pin_12 etc.
  */
-#define GREEN  LED4_PIN
-#define ORANGE LED3_PIN
-#define RED    LED5_PIN
-#define BLUE   LED6_PIN
-#define ALL_LEDS (GREEN | ORANGE | RED | BLUE) // all leds
-
 #define PAUSE_LONG  4000000L
 #define PAUSE_SHORT 1000000L
 
@@ -25,6 +19,8 @@
 static uint16_t leds[LEDn] = {GREEN, ORANGE, RED, BLUE};
 
 GPIO_InitTypeDef GPIO_InitStructure;
+SPI_InitTypeDef SPI_InitStruct;
+
 
 static void delay(__IO uint32_t nCount)
 {
@@ -32,22 +28,6 @@ static void delay(__IO uint32_t nCount)
         __asm("nop"); // do nothing
 }
 
-/* Initialize the GPIOD port.
- * See also the comments beginning stm32f4xx_gpio.c
- * (found in the library)
- */
-static void setup_leds(void)
-{
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
-    GPIO_InitStructure.GPIO_Pin   = ALL_LEDS;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-
-    GPIO_Init(LEDS_GPIO_PORT, &GPIO_InitStructure);
-}
 
 static void external_IO_setup(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -59,71 +39,83 @@ static void external_IO_setup(void) {
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
 
     GPIO_Init(GPIOA, &GPIO_InitStructure);
-
 }
 
 static void external_LED(void) {
 	GPIO_SetBits(GPIOA, GPIO_Pin_10);
-	delay(PAUSE_SHORT);
+	delay(4000000L);
 	GPIO_ResetBits(GPIOA, GPIO_Pin_10);
-	delay(PAUSE_SHORT);
+	delay(4000000L);
 }
 
-/* Turn on the color leds one after another.
- * The order of the leds is defined in the array leds above.
- * The functions GPIO_SetBits and GPIO_ResetBits are declared
- * in stm32f4xx_gpio.h and implemented in stm32f4xx_gpio.c.
- *
- * You might want to look at the implementation in order to see
- * how this works.
- * Basically, this works by using the memory map mechanism of the
- * Cortex-M4: the pins of the GPIO port D are mapped to special
- * memory addresses which these function write to.
- * The exact addresses are represented by the fields of the
- * GPIO_TypeDef structure (that is by their offsets).
- * See also the structure GPIO_TypeDef in stm32f4xx.h.
- */
-static void led_round(void)
-{
-    int i;
-    for (i = 0; i < LEDn; i++)
-    {
-        /* turn on led */
-        GPIO_SetBits(LEDS_GPIO_PORT, leds[i]);
-        /* wait a while */
-        delay(PAUSE_LONG);
-        /* turn off all leds */
-        GPIO_ResetBits(LEDS_GPIO_PORT, ALL_LEDS);
-    }
+static void spi_Init(void){
+	// Initialize alternate function pins A5, A6, and A7
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_SPI1); // SCLK
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
+
+	// Initialize CS pin
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+    GPIO_Init(GPIOC, &GPIO_InitStructure); // CS
+
+	GPIOC->BSRRL |= GPIO_Pin_4
+
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
+	SPI_InitStruct.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
+	SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
+	SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;        // clock is low when idle
+	SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
+	SPI_InitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
+	SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // SPI frequency is APB2 frequency / 4
+	SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
+	SPI_Init(SPI1, &SPI_InitStruct); 
+
 }
 
-/* Turn all leds on and off 4 times. */
-static void flash_all_leds(void)
-{
-    int i;
-    for (i = 0; i < 4; i++)
-    {
-        /* Turn on all user leds */
-        GPIO_SetBits(LEDS_GPIO_PORT, ALL_LEDS);
-        /* Wait a short time */
-        delay(PAUSE_SHORT);
-        /* Turn off all leds */
-        GPIO_ResetBits(LEDS_GPIO_PORT, ALL_LEDS);
-        /* Wait again before looping */
-        delay(PAUSE_SHORT);
-    }
+uint8_t SPI1_send(uint8_t data){
+	SPI1->DR = data; // write data to be transmitted to the SPI data register
+	while( !(SPI1->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
+	while( !(SPI1->SR & SPI_I2S_FLAG_RXNE) ); // wait until receive complete
+	while( SPI1->SR & SPI_I2S_FLAG_BSY ); // wait until SPI is not busy anymore
+	return SPI1->DR; // return received data from SPI data register
+}
+
+// Compatibility functions to use Arduino RA8875 Library
+
+void writeCommand(uint8_t reg) {
+	SPI_Cmd(SPI1, reg);
+}
+
+void writeData(uint8_t data) {
+	SPI1_send(data);
+}
+
+uint8_t readData(void) {
+	uint8_t rx_data = SPI1_send(NULL);
+	return rx_data;
 }
 
 int main(void)
 {
-    //setup_leds();
 	external_IO_setup();
+	spi_Init();
     while (1)
     {
-        //led_round();
 		external_LED();
-        //flash_all_leds();
     }
 
-    return 0; // never returns actually
+    return 0; 
 }
