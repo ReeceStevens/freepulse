@@ -9,11 +9,15 @@ Current Project Goals
 1. Successful migration to STM32F4 from Teensy 3.2
 
 	a. Restore SPI peripheral functionality
+
 		- Display
+
 		- Touch screen
 
 	b. Restore ECG functionality
+
 		- Hardware interface
+
 		- Software: display and analysis
 
 2. Completing remaining sensors
@@ -30,4 +34,4 @@ Current Project Goals
 
 	b. Bluetooth (?)
 
-[FreePulse]: www.freepulsemed.com
+[FreePulse]: http://www.freepulsemed.com
