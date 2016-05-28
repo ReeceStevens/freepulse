@@ -38,15 +38,14 @@
   #include <pgmspace.h>
 #endif
 */
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_spi.h"
-#include <stdlib.h>
-#include <Adafruit_GFX.h>
-
-#define boolean bool
 
 #ifndef _ADAFRUIT_RA8875_H
 #define _ADAFRUIT_RA8875_H
+
+#include <stdlib.h>
+#include "Adafruit_GFX.h"
+
+#define boolean bool
 
 // Sizes!
 enum RA8875sizes { RA8875_480x272, RA8875_800x480 };
@@ -73,7 +72,7 @@ class Adafruit_RA8875 : public Adafruit_GFX {
  public:
   Adafruit_RA8875(uint8_t cs, uint8_t rst);
   
-  boolean begin(enum RA8875sizes s);
+  boolean begin(void);
   void    softReset(void);
   void    displayOn(boolean on);
   void    sleep(boolean sleep);

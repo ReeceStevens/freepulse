@@ -30,10 +30,9 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
-
-#include "pgmspace.h"
-#include "WString.h"
 #include "Adafruit_GFX.h"
+//#include "pgmspace.h"
+//#include "WString.h"
 #include "glcdfont.c"
 
 // Many (but maybe not all) non-AVR board installs define macros
@@ -66,16 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef _swap_int16_t
 #define _swap_int16_t(a, b) { int16_t t = a; a = b; b = t; }
 #endif
-
-// A very rough delay function. Not highly accurate, but
-// we are only using it for stalling until a peripheral is 
-// initialized.
-static void delay(uint32_t nCount)
-{
-	nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
-    while(nCount--)
-        __asm("nop"); // do nothing
-}
 
 Adafruit_GFX::Adafruit_GFX(int16_t w, int16_t h):
   WIDTH(w), HEIGHT(h)
@@ -523,9 +512,7 @@ size_t Adafruit_GFX::write(uint8_t c) {
     }
 
   }
-#if ARDUINO >= 100
   return 1;
-#endif
 }
 
 // Draw a character
@@ -570,7 +557,7 @@ void Adafruit_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
     uint16_t bo = pgm_read_word(&glyph->bitmapOffset);
     uint8_t  w  = pgm_read_byte(&glyph->width),
              h  = pgm_read_byte(&glyph->height),
-             xa = pgm_read_byte(&glyph->xAdvance);
+             __attribute__((unused)) xa = pgm_read_byte(&glyph->xAdvance);
     int8_t   xo = pgm_read_byte(&glyph->xOffset),
              yo = pgm_read_byte(&glyph->yOffset);
     uint8_t  xx, yy, bits, bit = 0;
@@ -883,7 +870,7 @@ int16_t Adafruit_GFX::height(void) const {
   return _height;
 }
 
-void Adafruit_GFX::invertDisplay(boolean i) {
+void Adafruit_GFX::invertDisplay(__attribute__((unused)) boolean i) {
   // Do nothing, must be subclassed if supported by hardware
 }
 
@@ -1073,4 +1060,3 @@ void GFXcanvas16::fillScreen(uint16_t color) {
     }
   }
 }
-

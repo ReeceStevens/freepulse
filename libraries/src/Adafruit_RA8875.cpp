@@ -32,12 +32,15 @@
 #define LOW 0
 #define HIGH 1
 
+#define PAUSE_LONG  4000000L
+#define PAUSE_SHORT 1000000L
+
 // A very rough delay function. Not highly accurate, but
 // we are only using it for stalling until a peripheral is 
 // initialized.
-static void delay(uint32_t nCount)
+static void delay(__IO uint32_t nCount)
 {
-	nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
+	//nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
     while(nCount--)
         __asm("nop"); // do nothing
 }
@@ -76,9 +79,9 @@ void spi1_Init(void){
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
 	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
 
-	// Initialize CS pin
+	// Initialize CS and RST pin
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4 | GPIO_Pin_5;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -87,6 +90,7 @@ void spi1_Init(void){
 
 	GPIOC->BSRRL |= GPIO_Pin_4;
 	GPIO_SetBits(GPIOC, GPIO_Pin_4); // Set CS high at the beginning
+	GPIO_ResetBits(GPIOC, GPIO_Pin_5); // Set RESET low at the beginning
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
@@ -123,7 +127,7 @@ Adafruit_RA8875::Adafruit_RA8875(uint8_t CS, uint8_t RST) : Adafruit_GFX(800, 48
                   'RA8875_800x480' (5" and 7" displays)
 */
 /**************************************************************************/
-boolean Adafruit_RA8875::begin(enum RA8875sizes s) {
+boolean Adafruit_RA8875::begin() {
   _size = RA8875_800x480;
   _width = 800;
   _height = 480;
@@ -149,7 +153,7 @@ void Adafruit_RA8875::softReset(void) {
   writeCommand(RA8875_PWRR);
   writeData(RA8875_PWRR_SOFTRESET);
   writeData(RA8875_PWRR_NORMAL);
-  delay(1);
+  delay(PAUSE_SHORT);
 }
 
 /**************************************************************************/
@@ -160,15 +164,15 @@ void Adafruit_RA8875::softReset(void) {
 void Adafruit_RA8875::PLLinit(void) {
   if (_size == RA8875_480x272) {
     writeReg(RA8875_PLLC1, RA8875_PLLC1_PLLDIV1 + 10);
-    delay(1);
+    delay(PAUSE_SHORT);
     writeReg(RA8875_PLLC2, RA8875_PLLC2_DIV4);
-    delay(1);
+    delay(PAUSE_SHORT);
   }
   if (_size == RA8875_800x480) {
     writeReg(RA8875_PLLC1, RA8875_PLLC1_PLLDIV1 + 10);
-    delay(1);
+    delay(PAUSE_SHORT);
     writeReg(RA8875_PLLC2, RA8875_PLLC2_DIV4);
-    delay(1);
+    delay(PAUSE_SHORT);
   }
 }
 
@@ -216,7 +220,7 @@ void Adafruit_RA8875::initialize(void) {
   }
 
   writeReg(RA8875_PCSR, pixclk);
-  delay(1);
+  delay(PAUSE_SHORT);
   
   /* Horizontal settings registers */
   writeReg(RA8875_HDWR, (_width / 8) - 1);                          // H width: (HDWR + 1) * 8 = 480
@@ -250,7 +254,7 @@ void Adafruit_RA8875::initialize(void) {
   
   /* Clear the entire window */
   writeReg(RA8875_MCLR, RA8875_MCLR_START | RA8875_MCLR_FULL);
-  delay(500);writeCommand(RA8875_MWCR0);
+  delay(PAUSE_SHORT);writeCommand(RA8875_MWCR0);
   uint8_t temp = readData();
   temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
   writeData(temp);
@@ -261,7 +265,45 @@ void Adafruit_RA8875::initialize(void) {
   temp &= ~((1<<7) | (1<<5)); // Clear bits 7 and 5
   writeData(temp);
 }
+/**************************************************************************/
+/*!
+      Returns the display width in pixels
+      
+      @returns  The 1-based display width in pixels
+*/
+/**************************************************************************/
+uint16_t Adafruit_RA8875::width(void) { return _width; }
 
+/**************************************************************************/
+/*!
+      Returns the display height in pixels
+
+      @returns  The 1-based display height in pixels
+*/
+/**************************************************************************/
+uint16_t Adafruit_RA8875::height(void) { return _height; }
+
+/************************* Text Mode ***********************************/
+
+/**************************************************************************/
+/*!
+      Sets the display in text mode (as opposed to graphics mode)
+*/
+/**************************************************************************/
+void Adafruit_RA8875::textMode(void) 
+{
+  /* Set text mode */
+  writeCommand(RA8875_MWCR0);
+  uint8_t temp = readData();
+  temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
+  writeData(temp);
+  
+  /* Select the internal (ROM) font */
+  writeCommand(0x21);
+  temp = readData();
+  temp &= ~((1<<7) | (1<<5)); // Clear bits 7 and 5
+  writeData(temp);
+}
 /**************************************************************************/
 /*!
       Sets the display in text mode (as opposed to graphics mode)
@@ -383,11 +425,11 @@ void Adafruit_RA8875::textWrite(const char* buffer, uint16_t len)
   {
     writeData(buffer[i]);
 #if defined(__AVR__)
-    if (_textScale > 1) delay(1);
+    if (_textScale > 1) delay(PAUSE_SHORT);
 #elif defined(__arm__)
     // This delay is needed with textEnlarge(1) because
     // Teensy 3.X is much faster than Arduino Uno
-    if (_textScale > 0) delay(1);
+    if (_textScale > 0) delay(PAUSE_SHORT);
 #endif
   }
 }

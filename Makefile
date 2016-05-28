@@ -28,19 +28,26 @@ SRCS  += stm32f4xx_gpio.c
 SRCS  += stm32f4xx_spi.c
 SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
-
-
-# Startup file written by ST
 SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f4xx.s
 
 # The header files we use are located here
-INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
-INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Include
+# INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
+INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Include
 INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
 INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
 INC_DIRS += ./libraries/inc
 INC_DIRS += ./system/inc
 INC_DIRS += ./inc
+
+DEPS  = stm32f4xx.h
+DEPS += stm32f4xx_rcc.h
+DEPS += stm32f4xx_gpio.h
+DEPS += stm32f4xx_spi.h
+DEPS += Adafruit_RA8875.h
+DEPS += Adafruit_GFX.h
+DEPS += WString.h
+DEPS += gfxfont.h
+DEPS += pgmspace.h
 
 # OBJS = $(SRCS:.c=.o)
 
@@ -76,6 +83,13 @@ CFLAGS += -felide-constructors -std=c++0x
 LD_DIR = ./linker
 LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 
+OBJS   = main.o
+OBJS  += Adafruit_GFX.o
+OBJS  += Adafruit_GFX.o
+OBJS  += system_stm32f4xx.o
+OBJS  += stm32f4xx_rcc.o 
+OBJS  += stm32f4xx_gpio.o
+OBJS  += stm32f4xx_spi.o
 
 ######################################################################
 #                         SETUP TARGETS                              #
@@ -83,6 +97,9 @@ LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 
 .PHONY: $(PROJ_NAME)
 $(PROJ_NAME): $(PROJ_NAME).elf
+
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(PROJ_NAME).elf: $(SRCS)
 	$(CC) $(INCLUDE) $(DEFS) $(CFLAGS) $(LFLAGS) $^ -o $@ 

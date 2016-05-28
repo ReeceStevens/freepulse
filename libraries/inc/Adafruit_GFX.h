@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include "WString.h"
 #include "gfxfont.h"
+
 #define boolean bool
 
 class Adafruit_GFX {
