@@ -325,7 +325,8 @@ void Adafruit_RA8875::textMode(void)
   /* Set text mode */
   writeCommand(RA8875_MWCR0);
   uint8_t temp = readData();
-  temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
+  temp |= RA8875_MWCR0_TXTMODE; // Set bit 7 (text mode enable)
+  temp &= ~(0xF); // Clear bit 0 (auto-increase cursor)
   writeData(temp);
   
   /* Select the internal (ROM) font */
@@ -333,6 +334,11 @@ void Adafruit_RA8875::textMode(void)
   temp = readData();
   temp &= ~((1<<7) | (1<<5)); // Clear bits 7 and 5
   writeData(temp);
+
+  // Clear serial font ROM settings
+  writeCommand(0x2F);
+  writeData(0x0);
+
 }
 /**************************************************************************/
 /*!
@@ -466,7 +472,6 @@ void Adafruit_RA8875::textWrite(const char* buffer, uint16_t len)
   for (uint16_t i=0;i<len;i++)
   {
     writeData(buffer[i]);
-    if (_textScale > 0) delay(10000L);
   }
 }
 

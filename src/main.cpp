@@ -65,8 +65,7 @@ bool success;
 
 /* Build UI Buttons */
 
-Button settings = Button(9,9,2,2,RA8875_RED,"F",true,&tft);
-//Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
+Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
 /*
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
 Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);

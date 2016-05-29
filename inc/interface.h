@@ -34,22 +34,20 @@ public:
 class Button : public ScreenElement{
 private:
     int color;
-    char* button_str;
+    const char* button_str;
 
 public:
     bool visible;
     bool lastTapped;
 
-    Button(int row, int column, int len, int width, int color, char* button_str, bool visible, Adafruit_RA8875* tft):ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
+    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Adafruit_RA8875* tft):ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
         lastTapped = 0;
     };
 
     void draw(void){
 	    tft_interface->fillRect(coord_x,coord_y,real_width,real_len,color);
         tft_interface->textMode();
-        //tft_interface->textSetCursor(coord_x, coord_y);
         tft_interface->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
-		tft_interface->textRotate(false);
         tft_interface->textColor(RA8875_BLACK, color);
         tft_interface->textEnlarge(0);
         tft_interface->textWrite(button_str);
