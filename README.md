@@ -35,4 +35,4 @@ Current Project Goals
 	- Bluetooth (?)
 
 [FreePulse]: http://www.freepulsemed.com
-[blog]: http://www.reecestevens.me/blog
+[blog]: http://reecestevens.me/blog
