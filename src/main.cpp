@@ -18,7 +18,7 @@ SPI_InitTypeDef SPI_InitStruct;
 #define RA8875_PINK        0xF81F
 #define RA8875_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
 #define RA8875_LIGHTGREY   0xC618      /* 192, 192, 192 */
-#define RA8875_INT 5
+#define RA8875_WAIT 3
 #define RA8875_CS 4
 #define RA8875_RESET 5
 #define HOMESCREEN 0
@@ -65,7 +65,8 @@ bool success;
 
 /* Build UI Buttons */
 
-Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
+Button settings = Button(9,9,2,2,RA8875_RED,"F",true,&tft);
+//Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
 /*
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
 Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
@@ -98,7 +99,7 @@ void gui_init() {
 	tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
 	tft.PWM1out(255);
 
-	// With hardware accelleration this is instant
+	// With hardware acceleration this is instant
 	tft.fillScreen(RA8875_BLACK);
 	tft.touchEnable(true);
 }
@@ -114,7 +115,7 @@ void MainScreenInit(void){
   clearScreen(RA8875_BLACK);
   showGrid();
   //title.draw();
-  //settings.draw();
+  settings.draw();
   //ecg.draw();
   //ecg2.draw();
 }
@@ -176,24 +177,10 @@ int main(void)
   	gui_init();
 	delay(PAUSE_LONG);
   	currentMode = HOMESCREEN;
-    //MainScreenInit();
-  	clearScreen(RA8875_GREENYELLOW);
-	delay(PAUSE_SHORT);
-	showGrid();
-	//settings.draw();
-	tft.fillRect(100,100,200,200,RA8875_RED);
-	delay(PAUSE_LONG);
-	tft.textMode();
-	tft.textSetCursor(130, 130);
-	tft.textColor(RA8875_BLACK, RA8875_BLACK);
-	tft.textEnlarge(1);
-	tft.textWrite("2");
-	tft.graphicsMode();
+    MainScreenInit();
 	if (success) {
 		while(true){
 			external_LED(PAUSE_SHORT);		
-			//settings.draw();
-			//delay(PAUSE_LONG);
 		}
 	} else {
 		while(true){

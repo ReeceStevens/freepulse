@@ -49,8 +49,9 @@ public:
         tft_interface->textMode();
         //tft_interface->textSetCursor(coord_x, coord_y);
         tft_interface->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
+		tft_interface->textRotate(false);
         tft_interface->textColor(RA8875_BLACK, color);
-        tft_interface->textEnlarge(1);
+        tft_interface->textEnlarge(0);
         tft_interface->textWrite(button_str);
         tft_interface->graphicsMode();
     }

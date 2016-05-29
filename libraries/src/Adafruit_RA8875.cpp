@@ -57,6 +57,12 @@ void digitalWrite(int pin, int state) {
 	}
 }
 
+uint8_t digitalRead(int pin) {
+	uint16_t pin_addr = (1 << (pin));
+	if (GPIOC->IDR & pin_addr) { return HIGH; }
+	else { return LOW; }
+}
+
 uint8_t SPI1_send(uint8_t data){
 	SPI1->DR = data; // write data to be transmitted to the SPI data register
 	while( !(SPI1->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
@@ -88,7 +94,15 @@ void spi1_Init(void){
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-    GPIO_Init(GPIOC, &GPIO_InitStructure); // CS
+    GPIO_Init(GPIOC, &GPIO_InitStructure); // CS and RST
+
+	// Initialize WAIT pin
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_3; 
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
+    GPIO_Init(GPIOC, &GPIO_InitStructure); // WAIT
 
 	int rst = 5;
 	int cs = 4;
@@ -270,7 +284,7 @@ void Adafruit_RA8875::initialize(void) {
   
   /* Clear the entire window */
   writeReg(RA8875_MCLR, RA8875_MCLR_START | RA8875_MCLR_FULL);
-  delay(PAUSE_SHORT);writeCommand(RA8875_MWCR0);
+  delay(PAUSE_SHORT); writeCommand(RA8875_MWCR0);
   uint8_t temp = readData();
   temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
   writeData(temp);
@@ -425,6 +439,18 @@ void Adafruit_RA8875::textEnlarge(uint8_t scale)
   _textScale = scale;
 }
 
+void Adafruit_RA8875::textRotate(boolean rot)
+{
+  writeCommand(0x22); // Open font control register (FNCR1)
+  uint8_t temp = readData(); // get what's already in the register
+  if (rot) {
+    temp |= 0x10; // Rotate
+  } else {
+	temp &= ~(0x10); // Turn off rotate
+  }
+  writeData(temp);
+}
+
 /**************************************************************************/
 /*!
       Renders some text on the screen when in text mode
@@ -440,13 +466,7 @@ void Adafruit_RA8875::textWrite(const char* buffer, uint16_t len)
   for (uint16_t i=0;i<len;i++)
   {
     writeData(buffer[i]);
-#if defined(__AVR__)
-    if (_textScale > 1) delay(PAUSE_SHORT);
-#elif defined(__arm__)
-    // This delay is needed with textEnlarge(1) because
-    // Teensy 3.X is much faster than Arduino Uno
-    if (_textScale > 0) delay(PAUSE_SHORT);
-#endif
+    if (_textScale > 0) delay(10000L);
   }
 }
 
@@ -1246,6 +1266,7 @@ void  Adafruit_RA8875::writeReg(uint8_t reg, uint8_t val)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readReg(uint8_t reg) 
 {
+  while (!digitalRead(3)) {} // Wait until no longer busy
   writeCommand(reg);
   return readData();
 }
@@ -1257,6 +1278,7 @@ uint8_t  Adafruit_RA8875::readReg(uint8_t reg)
 /**************************************************************************/
 void  Adafruit_RA8875::writeData(uint8_t d) 
 {
+  while (!digitalRead(3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_DATAWRITE);
   SPI1_send(d);
@@ -1270,6 +1292,7 @@ void  Adafruit_RA8875::writeData(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readData(void) 
 {
+  while (!digitalRead(3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_DATAREAD);
   uint8_t x = SPI1_send(0x0);
@@ -1284,6 +1307,7 @@ uint8_t  Adafruit_RA8875::readData(void)
 /**************************************************************************/
 void  Adafruit_RA8875::writeCommand(uint8_t d) 
 {
+  while (!digitalRead(3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_CMDWRITE);
   SPI1_send(d);

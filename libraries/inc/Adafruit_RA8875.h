@@ -48,6 +48,7 @@
 #define boolean bool
 
 void digitalWrite(int  pin, int state);
+uint8_t digitalRead(int pin);
 
 // Sizes!
 enum RA8875sizes { RA8875_480x272, RA8875_800x480 };
@@ -85,6 +86,7 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void    textColor(uint16_t foreColor, uint16_t bgColor);
   void    textTransparent(uint16_t foreColor);
   void    textEnlarge(uint8_t scale);
+  void	  textRotate(boolean rot);
   void    textWrite(const char* buffer, uint16_t len=0);
 
   /* Graphics functions */
