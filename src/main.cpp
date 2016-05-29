@@ -61,10 +61,12 @@ int currentMode = 0; // Change mode
 volatile int inverted = 0;
 volatile int activeAlarm = 0;
 
+bool success;
 
 /* Build UI Buttons */
-/*
+
 Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
+/*
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
 Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
 Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",true,&tft);
@@ -89,7 +91,7 @@ void showGrid(void){
 }
 
 void gui_init() {
-	tft.begin();
+	success = tft.begin();
 
 	tft.displayOn(true);
 	tft.GPIOX(true);      // Enable TFT - display enable tied to GPIOX
@@ -148,86 +150,55 @@ static void external_IO_setup(void) {
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
-static void external_LED(void) {
-	GPIO_SetBits(GPIOA, GPIO_Pin_10);
-	delay(PAUSE_SHORT);
-	GPIO_ResetBits(GPIOA, GPIO_Pin_10);
-	delay(PAUSE_SHORT);
+// Compatibility Functions
+void digitalWrite_A(int pin, int state) {
+	uint16_t pin_addr = (1 << (pin));
+	switch (state) {
+		case 0: 
+			GPIOA->BSRRH |= pin_addr;
+			break;
+		default: // Anything other than zero is high
+			GPIOA->BSRRL |= pin_addr;
+	}
 }
+
+static void external_LED(__IO uint32_t pause) {
+	digitalWrite_A(10, 1);
+	delay(pause);
+	digitalWrite_A(10,0);
+	delay(pause);
+}
+
 
 int main(void)
 {
 	external_IO_setup();
   	gui_init();
+	delay(PAUSE_LONG);
   	currentMode = HOMESCREEN;
     //MainScreenInit();
   	clearScreen(RA8875_GREENYELLOW);
+	delay(PAUSE_SHORT);
 	showGrid();
-	while(true){
-		external_LED();		
+	//settings.draw();
+	tft.fillRect(100,100,200,200,RA8875_RED);
+	delay(PAUSE_LONG);
+	tft.textMode();
+	tft.textSetCursor(130, 130);
+	tft.textColor(RA8875_BLACK, RA8875_BLACK);
+	tft.textEnlarge(1);
+	tft.textWrite("2");
+	tft.graphicsMode();
+	if (success) {
+		while(true){
+			external_LED(PAUSE_SHORT);		
+			//settings.draw();
+			//delay(PAUSE_LONG);
+		}
+	} else {
+		while(true){
+			external_LED(PAUSE_LONG);	
+		}
 	}
-    /*while (1)
-    {
-		external_LED();
-		if (currentMode == HOMESCREEN) {
-			//MainScreenInit();
-			int delay_touch_detection = 10000;
-			for (int i = 0; i < delay_touch_detection; i += 1) {
-				tft.touchRead(&tx, &ty);
-			}
-			// Clear the touch points to prevent double-presses
-			tx = 0;
-			ty = 0;
-			int display_timer = 0;
-			int max_time = 200;
-			while(currentMode == HOMESCREEN) {
-				if (display_timer == max_time) {
-					display_timer = 0;
-				} else { display_timer += 1; }
-				//delay(10);
-				if ((tft.touched())) {
-					while (tft.touched()) {
-						tft.touchRead(&tx, &ty);
-					}
-				}
-				else {
-					// If no touch events, clear the touch points.
-					tx = 0;
-					ty = 0;
-				}
-				if (settings.isTapped(tx,ty)){
-					clearScreen(RA8875_BLACK);
-					currentMode = ALARMSCREEN;
-				}
-			}
-		}
-		if (currentMode == ALARMSCREEN) {
-			SettingsScreenInit();
-			int delay_touch_detection = 10000;
-			for (int i = 0; i < delay_touch_detection; i += 1) {
-				tft.touchRead(&tx, &ty);
-			}
-			// Clear the touch points to prevent double-presses
-			tx = 0;
-			ty = 0;
-			while (currentMode == ALARMSCREEN) {
-				if ((tft.touched())) {
-					while (tft.touched()) {
-						tft.touchRead(&tx, &ty);
-					}
-				}
-				else {
-					// If no touch events, clear the touch points.
-					tx = 0;
-					ty = 0;
-				}
-				
-				if (cancel_button.isTapped(tx,ty)) {
-					clearScreen(RA8875_BLACK);
-					currentMode = HOMESCREEN;
-				}
-			}
-		}
-    }*/
     return 0; 
 }

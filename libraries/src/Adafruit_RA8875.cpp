@@ -47,11 +47,13 @@ static void delay(__IO uint32_t nCount)
 
 // Compatibility Functions
 void digitalWrite(int pin, int state) {
+	uint16_t pin_addr = (1 << (pin));
 	switch (state) {
 		case LOW: 
-			GPIO_ResetBits(GPIOC, pin);
+			GPIOC->BSRRH |= pin_addr;
+			break;
 		default: // Anything other than zero is high
-			GPIO_SetBits(GPIOC, pin);
+			GPIOC->BSRRL |= pin_addr;
 	}
 }
 
@@ -88,9 +90,12 @@ void spi1_Init(void){
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
     GPIO_Init(GPIOC, &GPIO_InitStructure); // CS
 
-	GPIOC->BSRRL |= GPIO_Pin_4;
-	GPIO_SetBits(GPIOC, GPIO_Pin_4); // Set CS high at the beginning
-	GPIO_ResetBits(GPIOC, GPIO_Pin_5); // Set RESET low at the beginning
+	int rst = 5;
+	int cs = 4;
+	digitalWrite(cs, LOW);
+	//GPIOC->BSRRL |= GPIO_Pin_4; // CS (low)
+	digitalWrite(rst, HIGH);
+	//GPIOC->BSRRH |= GPIO_Pin_5; // RST (high)
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
@@ -99,10 +104,20 @@ void spi1_Init(void){
 	SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;        // clock is low when idle
 	SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
 	SPI_InitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
+
 	SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // SPI frequency is APB2 frequency / 4
 	SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
 	SPI_Init(SPI1, &SPI_InitStruct); 
+
+	// Toggle the reset pin
+    digitalWrite(rst, LOW);
+    delay(100000L);
+    digitalWrite(rst, HIGH);
+    delay(100000L);
+
 	SPI_Cmd(SPI1, ENABLE);
+
+	digitalWrite(cs, HIGH);
 }
 
 /**************************************************************************/
@@ -133,10 +148,11 @@ boolean Adafruit_RA8875::begin() {
   _height = 480;
 
   spi1_Init();
-
+  /*
   if (readReg(0) != 0x75) {
     return false;
   }
+  */ 
 
   initialize();
   return true;

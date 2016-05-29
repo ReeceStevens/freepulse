@@ -47,6 +47,8 @@
 
 #define boolean bool
 
+void digitalWrite(int  pin, int state);
+
 // Sizes!
 enum RA8875sizes { RA8875_480x272, RA8875_800x480 };
 

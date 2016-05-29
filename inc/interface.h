@@ -50,7 +50,7 @@ public:
         //tft_interface->textSetCursor(coord_x, coord_y);
         tft_interface->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
         tft_interface->textColor(RA8875_BLACK, color);
-        tft_interface->textEnlarge(0);
+        tft_interface->textEnlarge(1);
         tft_interface->textWrite(button_str);
         tft_interface->graphicsMode();
     }
@@ -87,8 +87,8 @@ public:
         //tft_interface->textSetCursor(coord_x+5,coord_y+5);
         tft_interface->textSetCursor(coord_x,coord_y);
 	    tft_interface->textColor(text_color,background_color);
-        tft_interface->textEnlarge(text_size);
-        //tft_interface->textEnlarge(1);
+        //tft_interface->textEnlarge(text_size);
+        tft_interface->textEnlarge(1);
         //tft_interface->setCursor(coord_x+5,coord_y+5);
         tft_interface->textWrite(str);
         tft_interface->graphicsMode();
