@@ -71,8 +71,10 @@ Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
 Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",true,&tft);
 TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,"FreePulse Patient Monitor v0.9", &tft);
 
-//ECGReadout ecg = ECGReadout(2,1,3,8,15,RA8875_BLUE,RA8875_LIGHTGREY,&tft);
-//ECGReadout ecg2 = ECGReadout(5,1,3,8,16,RA8875_RED,RA8875_LIGHTGREY,&tft);
+ECGReadout ecg = ECGReadout(2,1,3,8,15,RA8875_BLUE,RA8875_LIGHTGREY,&tft);
+TextBox heartrate = TextBox(2,9,3,2,RA8875_BLACK,RA8875_WHITE,4,true,"60", &tft);
+ECGReadout ecg2 = ECGReadout(6,1,3,4,16,RA8875_RED,RA8875_LIGHTGREY,&tft);
+ECGReadout ecg3 = ECGReadout(6,7,3,4,17,RA8875_GREEN,RA8875_LIGHTGREY,&tft);
 
 /*
  * showGrid() - 
@@ -100,8 +102,10 @@ void MainScreenInit(void){
   showGrid();
   title.draw();
   settings.draw();
-  //ecg.draw();
-  //ecg2.draw();
+  ecg.draw();
+  heartrate.draw();
+  ecg2.draw();
+  ecg3.draw();
 }
 
 
@@ -207,7 +211,11 @@ int main(void)
 	reset_tp(tp);
 	//for (int i = 0; i < debounce_limit; i ++) { read_touch(tp); reset_tp(tp); }
 	while (currentMode == HOMESCREEN) {
-		while (digitalRead(RA8875_INT)){}
+		while (digitalRead(RA8875_INT)){
+			ecg.display_signal();
+			ecg2.display_signal();
+			ecg3.display_signal();
+		}
 			read_touch(tp);	
 			/*
 			if (i < debounce_limit) { 
