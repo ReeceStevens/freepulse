@@ -96,17 +96,17 @@ void spi1_Init(void){
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
     GPIO_Init(GPIOC, &GPIO_InitStructure); // CS and RST
 
-	// Initialize WAIT pin
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_3; 
+	// Initialize WAIT and INT pins
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_2 | GPIO_Pin_3; 
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
-    GPIO_Init(GPIOC, &GPIO_InitStructure); // WAIT
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+    GPIO_Init(GPIOC, &GPIO_InitStructure); // WAIT and INT
 
 	int rst = 5;
 	int cs = 4;
-	digitalWrite(cs, LOW);
+	digitalWrite(cs, HIGH);
 	//GPIOC->BSRRL |= GPIO_Pin_4; // CS (low)
 	digitalWrite(rst, HIGH);
 	//GPIOC->BSRRH |= GPIO_Pin_5; // RST (high)
@@ -1159,9 +1159,9 @@ void Adafruit_RA8875::touchEnable(boolean on)
   {
     /* Enable Touch Panel (Reg 0x70) */
     writeReg(RA8875_TPCR0, RA8875_TPCR0_ENABLE        | 
-                           RA8875_TPCR0_WAIT_4096CLK  |
+                           RA8875_TPCR0_WAIT_16384CLK  |
                            RA8875_TPCR0_WAKEDISABLE   | 
-                           RA8875_TPCR0_ADCCLK_DIV4); // 10mhz max!
+                           RA8875_TPCR0_ADCCLK_DIV32); // 10mhz max!
     /* Set Auto Mode      (Reg 0x71) */
     writeReg(RA8875_TPCR1, RA8875_TPCR1_AUTO    | 
                            // RA8875_TPCR1_VREFEXT | 
@@ -1271,7 +1271,6 @@ void  Adafruit_RA8875::writeReg(uint8_t reg, uint8_t val)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readReg(uint8_t reg) 
 {
-  while (!digitalRead(3)) {} // Wait until no longer busy
   writeCommand(reg);
   return readData();
 }
@@ -1284,6 +1283,7 @@ uint8_t  Adafruit_RA8875::readReg(uint8_t reg)
 void  Adafruit_RA8875::writeData(uint8_t d) 
 {
   while (!digitalRead(3)) {} // Wait until no longer busy
+  delay(1000L);
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_DATAWRITE);
   SPI1_send(d);
@@ -1298,6 +1298,7 @@ void  Adafruit_RA8875::writeData(uint8_t d)
 uint8_t  Adafruit_RA8875::readData(void) 
 {
   while (!digitalRead(3)) {} // Wait until no longer busy
+  delay(1000L);
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_DATAREAD);
   uint8_t x = SPI1_send(0x0);
@@ -1313,6 +1314,7 @@ uint8_t  Adafruit_RA8875::readData(void)
 void  Adafruit_RA8875::writeCommand(uint8_t d) 
 {
   while (!digitalRead(3)) {} // Wait until no longer busy
+  delay(1000L);
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_CMDWRITE);
   SPI1_send(d);
@@ -1326,6 +1328,8 @@ void  Adafruit_RA8875::writeCommand(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readStatus(void) 
 {
+  while (!digitalRead(3)) {} // Wait until no longer busy
+  delay(1000L);
   digitalWrite(_cs, LOW);
   SPI1_send(RA8875_CMDREAD);
   uint8_t x = SPI1_send(0x0);
