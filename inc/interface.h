@@ -55,11 +55,11 @@ public:
     }
 
 
-    bool isTapped(uint16_t raw_x, uint16_t raw_y){
+    bool isTapped(uint16_t x, uint16_t y){
 	    // Weirdness is happening right now where x and y axes are switched
 	    // Once this is fixed in the main script, fix this function too!
-        uint16_t x = (uint16_t) raw_x / xScale; 
-        uint16_t y = (uint16_t) raw_y / yScale; 
+        //uint16_t x = (uint16_t) raw_x / xScale; 
+        //uint16_t y = (uint16_t) raw_y / yScale; 
 	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
 		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
 				    return true;

@@ -110,6 +110,7 @@ void SettingsScreenInit(void){
   confirm_button.draw();
   default_button.draw();
   cancel_button.draw();
+  showGrid();
 }
 
 
@@ -135,8 +136,6 @@ void gui_init() {
 
 	// Touch screen options
 	tft.touchEnable(true);
-	tft.writeReg(0x71, 0x44); // manual mode + debounce
-	tft.writeReg(0x71, tft.readReg(0x71) | 0x01); // wait for touch event
 }
 
 static void external_IO_setup(void) {
@@ -172,99 +171,78 @@ static void external_LED(__IO uint32_t pause) {
 	delay(pause);
 }
 
+void read_touch(uint16_t* tp){
+	uint16_t tx,ty;
+	tft.touchRead(&tx, &ty);
+	uint32_t tempx = (uint32_t) tx;
+	uint32_t tempy = (uint32_t) ty;
+	tempx *= s_width;
+	tempy *= s_height;
+	tempx /= 1023;
+	tempy /= 1023;
+	tp[0] = (uint16_t) tempx;
+	tp[1] = (uint16_t) tempy;
+	
+}
+
+void reset_tp(uint16_t* tp) {
+	tp[0] = 0;
+	tp[1] = 0;
+}
 
 int main(void)
 {
-	uint16_t tx, ty;
+	uint16_t* tp = new uint16_t[2];
+	uint16_t* entry_tp = new uint16_t[2];
 	external_IO_setup();
   	gui_init();
 	delay(PAUSE_LONG);
   	currentMode = HOMESCREEN;
-	char* coords = new char[15];
+	int debounce_limit = 4000;
+	int i = 0;
 	while (1) {
     MainScreenInit();
-	int delay_touch_detection = 10000;
-	tx = 0;
-	ty = 0;
+	delay(PAUSE_SHORT);
+	read_touch(tp);
+	reset_tp(tp);
+	//for (int i = 0; i < debounce_limit; i ++) { read_touch(tp); reset_tp(tp); }
 	while (currentMode == HOMESCREEN) {
-		tft.writeReg(0x71, (tft.readReg(0x71) & ~(0x03)) |  0x01); // wait for touch event
 		while (digitalRead(RA8875_INT)){}
-			tft.writeReg(0x71, (tft.readReg(0x71) & ~(0x03)) |  0x02); // latch x
-			tft.writeReg(0x71, (tft.readReg(0x71) & ~(0x03)) |  0x03); // latch y
-			
-			  tx = tft.readReg(RA8875_TPXH);
-			  ty = tft.readReg(RA8875_TPYH);
-			  uint8_t temp = tft.readReg(RA8875_TPXYL);
-			  tx <<= 2;
-			  ty <<= 2;
-			  tx |= temp & 0x03;        // get the bottom x bits
-			  ty |= (temp >> 2) & 0x03; // get the bottom y bits
-
-			tft.writeReg(0x71, (tft.readReg(0x71) & ~(0x03))); // set idle
-			tft.writeReg(0xF1, 0x04); // clear interrupt bit
-			
-			uint32_t xtemp = (uint32_t) tx;
-			uint32_t ytemp = (uint32_t) ty;
-			xtemp *= s_width;
-			ytemp *= s_height;
-			xtemp /= 1023;
-			ytemp /= 1023;
-			tx = (uint16_t) xtemp;
-			ty = (uint16_t) ytemp;
-			
-			if (settings.isTapped(tx,ty)){
+			read_touch(tp);	
+			/*
+			if (i < debounce_limit) { 
+				i += 1; 
+				if ((tp[0] == entry_tp[0]) && (tp[1] == entry_tp[1])){
+					continue;
+				}
+			}*/
+			if (settings.isTapped(tp[0],tp[1])){
 				clearScreen(RA8875_BLACK);
 				currentMode = ALARMSCREEN;
+				entry_tp[0] = tp[0];
+				entry_tp[1] = tp[1];
 			}
-			tft.drawPixel(tx,ty, RA8875_WHITE);
-			tft.fillRect(290,200,390,300, RA8875_BLACK);
-			tft.textMode();
-			tft.textSetCursor(300,200);
-			tft.textColor(RA8875_WHITE, RA8875_BLACK);
-			tft.textEnlarge(1);
-			sprintf(coords, "%d", tx);
-			tft.textWrite(coords);
-			tft.textSetCursor(300,250);
-			sprintf(coords, "%d", ty);
-			tft.textWrite(coords);
-			tft.graphicsMode();
+			tft.drawPixel(tp[0],tp[1], RA8875_WHITE);
 	}
 	if (currentMode == ALARMSCREEN) {
         SettingsScreenInit();
-		delay_touch_detection = 10000;
-    	for (int i = 0; i < delay_touch_detection; i += 1) {
-			tft.touchRead(&tx, &ty);
-    	}
-		// Clear the touch points to prevent double-presses
-		tx = 0;
-		ty = 0;
-        while (currentMode == ALARMSCREEN) {
-            if (digitalRead(RA8875_WAIT) && (tft.touched())) {
-				while (digitalRead(RA8875_WAIT) && tft.touched()) {
-					tft.touchRead(&tx, &ty);
-					tft.drawPixel(tx,ty, RA8875_WHITE);
-				}
-            }
-			else {
-				// If no touch events, clear the touch points.
-				tx = 0;
-				ty = 0;
-			}
-            if (cancel_button.isTapped(tx,ty)) {
+		delay(PAUSE_SHORT);
+		read_touch(tp);
+		reset_tp(tp);
+		//for (int i = 0; i < debounce_limit; i ++) { read_touch(tp); reset_tp(tp); }
+		while (currentMode == ALARMSCREEN) {
+			while (digitalRead(RA8875_INT)){}
+			read_touch(tp);
+			/*if ((tp[0] == entry_tp[0]) && (tp[1] == entry_tp[1])){
+				continue;
+			}*/
+			tft.drawPixel(tp[0],tp[1], RA8875_WHITE);
+            if (cancel_button.isTapped(tp[0],tp[1])) {
                 clearScreen(RA8875_BLACK);
                 currentMode = HOMESCREEN;
             }
-        }
+		}
     }
-	}
-	/*if (success) {
-		while(true){
-			external_LED(PAUSE_SHORT);		
-		}
-	} else {
-		while(true){
-			external_LED(PAUSE_LONG);	
-		}
-	}*/
+    }
     return 0; 
 }
