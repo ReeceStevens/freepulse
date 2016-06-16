@@ -44,8 +44,12 @@ public:
           __attribute__((unused)) int* p = 0;
           p = (int*) 1; // Intentionally crash.
 		}	
-		return data[mod(next-k, length)];
+		return data[mod(next-k-1, length)];
 	};
+
+	T& newest(void) {
+		return data[mod(next-1, length)]; 
+	}
 
 	static int mod(int a, int b) {
 		if (b > 0){

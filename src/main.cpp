@@ -73,8 +73,6 @@ TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,"FreePulse Pati
 
 ECGReadout ecg = ECGReadout(2,1,3,8,15,RA8875_BLUE,RA8875_LIGHTGREY,&tft);
 TextBox heartrate = TextBox(2,9,3,2,RA8875_BLACK,RA8875_WHITE,4,true,"60", &tft);
-ECGReadout ecg2 = ECGReadout(6,1,3,4,16,RA8875_RED,RA8875_LIGHTGREY,&tft);
-ECGReadout ecg3 = ECGReadout(6,7,3,4,17,RA8875_GREEN,RA8875_LIGHTGREY,&tft);
 
 /*
  * showGrid() - 
@@ -104,8 +102,8 @@ void MainScreenInit(void){
   settings.draw();
   ecg.draw();
   heartrate.draw();
-  ecg2.draw();
-  ecg3.draw();
+  //ecg2.draw();
+  //ecg3.draw();
 }
 
 
@@ -123,7 +121,6 @@ void SettingsScreenInit(void){
 // initialized.
 static void delay(__IO uint32_t nCount)
 {
-	//nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
     while(nCount--)
         __asm("nop"); // do nothing
 }
@@ -194,36 +191,42 @@ void reset_tp(uint16_t* tp) {
 	tp[1] = 0;
 }
 
+extern "C" void TIM3_IRQHandler(void) {
+	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+		ecg.read();
+	}
+}
+
 int main(void)
 {
 	uint16_t* tp = new uint16_t[2];
 	uint16_t* entry_tp = new uint16_t[2];
+	char* analog_data = new char[50];
+	ecg.configure();
 	external_IO_setup();
   	gui_init();
 	delay(PAUSE_LONG);
   	currentMode = HOMESCREEN;
-	int debounce_limit = 4000;
-	int i = 0;
 	while (1) {
     MainScreenInit();
 	delay(PAUSE_SHORT);
 	read_touch(tp);
 	reset_tp(tp);
-	//for (int i = 0; i < debounce_limit; i ++) { read_touch(tp); reset_tp(tp); }
 	while (currentMode == HOMESCREEN) {
 		while (digitalRead(RA8875_INT)){
 			ecg.display_signal();
-			ecg2.display_signal();
-			ecg3.display_signal();
+			tft.fillRect(290, 200, 330, 230, RA8875_BLACK);
+			tft.textMode();
+			tft.textSetCursor(300,200);
+			tft.textColor(RA8875_WHITE, RA8875_BLACK);
+			tft.textEnlarge(1);
+			uint16_t analog_in_data = ECGReadout::analogRead();
+			sprintf(analog_data, "%d", analog_in_data);
+			tft.textWrite(analog_data);
+			tft.graphicsMode();
 		}
 			read_touch(tp);	
-			/*
-			if (i < debounce_limit) { 
-				i += 1; 
-				if ((tp[0] == entry_tp[0]) && (tp[1] == entry_tp[1])){
-					continue;
-				}
-			}*/
 			if (settings.isTapped(tp[0],tp[1])){
 				clearScreen(RA8875_BLACK);
 				currentMode = ALARMSCREEN;
@@ -237,13 +240,9 @@ int main(void)
 		delay(PAUSE_SHORT);
 		read_touch(tp);
 		reset_tp(tp);
-		//for (int i = 0; i < debounce_limit; i ++) { read_touch(tp); reset_tp(tp); }
 		while (currentMode == ALARMSCREEN) {
 			while (digitalRead(RA8875_INT)){}
 			read_touch(tp);
-			/*if ((tp[0] == entry_tp[0]) && (tp[1] == entry_tp[1])){
-				continue;
-			}*/
 			tft.drawPixel(tp[0],tp[1], RA8875_WHITE);
             if (cancel_button.isTapped(tp[0],tp[1])) {
                 clearScreen(RA8875_BLACK);
