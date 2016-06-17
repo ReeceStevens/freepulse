@@ -13,6 +13,7 @@ flags = [
 '-I', '/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0/Libraries/CMSIS/Include',
 '-I', '/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0/Libraries/STM32F4xx_StdPeriph_Driver/inc',
 '-I', '/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0/Libraries/CMSIS/ST/STM32F4xx/Include',
+'-I', '/Users/reecestevens/projects/freepulse/googletest/googletest/include',
 '-std=c++11',
 '-isystem', 
 '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1',

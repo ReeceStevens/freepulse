@@ -42,6 +42,13 @@ INC_DIRS += ./libraries/inc
 INC_DIRS += ./system/inc
 INC_DIRS += ./inc
 
+GTEST_ROOT = /Users/reecestevens/projects/freepulse/googletest/googletest
+TEST_ROOT  = ./tests
+TEST_DIRS  = $(INC_DIRS)
+TEST_DIRS += $(GTEST_ROOT)/include
+TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
+TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
+
 DEPS  = stm32f4xx.h
 DEPS += stm32f4xx_rcc.h
 DEPS += stm32f4xx_gpio.h
@@ -63,8 +70,10 @@ TOOLS_DIR = /Users/reecestevens/projects/freepulse/tools/gcc-arm-none-eabi-4_8-2
 CC      = $(TOOLS_DIR)/arm-none-eabi-g++
 OBJCOPY = $(TOOLS_DIR)/arm-none-eabi-objcopy
 GDB     = $(TOOLS_DIR)/arm-none-eabi-gdb
+TESTCC  = g++ 
 
 INCLUDE = $(addprefix -I,$(INC_DIRS))
+TESTINCS = $(addprefix -I,$(TEST_DIRS))
 
 # #defines needed when working with the STM library
 DEFS    = -DUSE_STDPERIPH_DRIVER
@@ -110,7 +119,7 @@ $(PROJ_NAME).elf: $(SRCS)
 	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
 
 clean:
-	rm -f *.o $(PROJ_NAME).elf $(PROJ_NAME).hex $(PROJ_NAME).bin
+	rm -f *.o $(PROJ_NAME).elf $(PROJ_NAME).hex $(PROJ_NAME).bin test
 
 # Flash the STM32F4
 flash: 
@@ -120,3 +129,7 @@ flash:
 debug:
 # before you start gdb, you must start st-util
 	$(GDB) $(PROJ_NAME).elf
+
+test: $(TEST_SRCS)
+	$(TESTCC) $(TESTINCS) $(TEST_LIBS) $^ -o $@
+	./$@
