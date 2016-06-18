@@ -6,40 +6,37 @@
  * libraries (written for Arduino).
  *
  */
+#ifndef __Adafruit_Compat_h__
+#define __Adafruit_Compat_h__
+
 #include <stdint.h>
 
 #include "System.h"
+#include "SPI.h"
+#include "Adafruit_RA8875.h"
 
 
-
-
-class Adafruit_Compat {
+class Display: public Adafruit_RA8875 {
+private:
+	SPI_Interface* SPI;
 public:
-	void digitalWrite(Pin pin, int state) {
-		uint16_t pin_addr = (1 << (pin.physical_pin));
-		switch(state) {
-			case 0:
-				pin.GPIOx->BSRRH |= pin_addr;
-				break;
-			default:
-				pin.GPIOx->BSRRL |= pin_addr;
-		}
-	};
-	void analogWrite(int pin, int value);
-	int digitalRead(Pin pin) {
-		uint16_t pin_addr = (1 << (pin.physical_pin));
-		if (pin.GPIOx->IDR & pin_addr) { return 1; }
-		else { return 0; }
-	};
-	int analogRead(int pin);
+	Display(Pin_Num cs, Pin_Num rst, SPI_Channel SPIx):Adafruit_RA8875(cs,rst){
+		configure_GPIO(PC2, UP, OUTPUT); // INT pin
+		configure_GPIO(PC3, UP, OUTPUT); // WAIT pin
+		this->SPI = new SPI_Interface(SPIx);
 
-	class SPI {
-	public:	
-		void begin();
-		void setClockDivider(uint8_t clock_divider);
-		void setDataMode();
-		uint8_t transfer(uint8_t data);
-	};
+	}
+
+	/* Compatibility function overriding the Adafruit_RA8875::begin() call */
+	bool begin(__attribute__((unused))enum RA8875sizes s){
+		_size = RA8875_800x480;
+		_width = 800;
+		_height = 480;
+		SPI->begin();
+		this->initialize();
+		return true;
+	}
 
 };
 
+#endif

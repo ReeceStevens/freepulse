@@ -16,7 +16,8 @@ public:
     int real_width;
     Adafruit_RA8875* tft_interface;
 
-    ScreenElement(int row, int column, int len, int width, Adafruit_RA8875* tft_interface):row(row),column(column),len(len),width(width),tft_interface(tft_interface){
+    ScreenElement(int row, int column, int len, int width, Adafruit_RA8875* tft_interface):
+		row(row),column(column),len(len),width(width),tft_interface(tft_interface){
         coord_x = horizontal_scale*(column-1);
         coord_y = vertical_scale*(row-1);
         real_len = vertical_scale*len;
@@ -40,7 +41,8 @@ public:
     bool visible;
     bool lastTapped;
 
-    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Adafruit_RA8875* tft):ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
+    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Adafruit_RA8875* tft):
+		ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
         lastTapped = 0;
     };
 
@@ -74,12 +76,12 @@ private:
     int background_color;
     int text_color;
     int text_size;
-    char* str;
+    const char* str;
 
 public:
     bool visible;
 
-    TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, char* str, Adafruit_RA8875* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible) { };
+    TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, const char* str, Adafruit_RA8875* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible) { };
 
     void draw(void){
         tft_interface->textMode();

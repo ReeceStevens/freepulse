@@ -50,7 +50,7 @@ TEST_F(CircleFifoTest, ModBehavior) {
 	EXPECT_EQ(CircleFifo<int>::mod(-3,4), 1);
 }
 
-TEST_F(CircleFifoTest, AddLotsOfElements) {
+TEST_F(CircleFifoTest, AddLengthPlusOneElements) {
 	CircleFifo<int> a = CircleFifo<int>(5);
 	for (int i = 0; i < 6; i ++) {
 		a.add(i);
@@ -58,6 +58,17 @@ TEST_F(CircleFifoTest, AddLotsOfElements) {
 	EXPECT_EQ(a[0], 5);
 	EXPECT_EQ(a.newest(), 5);
 	EXPECT_EQ(a[4], 1);
+}
+
+TEST_F(CircleFifoTest, AddLotsOfElements) {
+	CircleFifo<int> a = CircleFifo<int>(5);
+	int k = 1005;
+	for (int i = 0; i <= k; i ++) {
+		a.add(i);
+	}
+	EXPECT_EQ(a[0], k);
+	EXPECT_EQ(a.newest(), k);
+	EXPECT_EQ(a[4], k-4);
 }
 
 }  // namespace

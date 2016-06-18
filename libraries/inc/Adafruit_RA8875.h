@@ -24,31 +24,11 @@
     v1.0 - First release
 */
 
-/*
-#if ARDUINO >= 100
- #include "Arduino.h"
- #include "Print.h"
-#else
- #include "WProgram.h"
-#endif
-
-#ifdef __AVR
-  #include <avr/pgmspace.h>
-#elif defined(ESP8266)
-  #include <pgmspace.h>
-#endif
-*/
+#include "Adafruit_GFX.h"
+#include "SPI.h"
 
 #ifndef _ADAFRUIT_RA8875_H
 #define _ADAFRUIT_RA8875_H
-
-#include <stdlib.h>
-#include "Adafruit_GFX.h"
-
-#define boolean bool
-
-void digitalWrite(int  pin, int state);
-extern uint8_t digitalRead(int pin);
 
 // Sizes!
 enum RA8875sizes { RA8875_480x272, RA8875_800x480 };
@@ -73,9 +53,9 @@ typedef struct //Matrix
 
 class Adafruit_RA8875 : public Adafruit_GFX {
  public:
-  Adafruit_RA8875(uint8_t cs, uint8_t rst);
+  Adafruit_RA8875(Pin_Num cs, Pin_Num rst);
   
-  boolean begin(void);
+  boolean begin(enum RA8875sizes s);
   void    softReset(void);
   void    displayOn(boolean on);
   void    sleep(boolean sleep);
@@ -86,7 +66,6 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void    textColor(uint16_t foreColor, uint16_t bgColor);
   void    textTransparent(uint16_t foreColor);
   void    textEnlarge(uint8_t scale);
-  void	  textRotate(boolean rot);
   void    textWrite(const char* buffer, uint16_t len=0);
 
   /* Graphics functions */
@@ -147,7 +126,7 @@ class Adafruit_RA8875 : public Adafruit_GFX {
     return size;
   }
 
- private:
+ protected:
   void PLLinit(void);
   void initialize(void);
   
@@ -158,10 +137,11 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void ellipseHelper(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint16_t color, bool filled);
   void curveHelper(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint8_t curvePart, uint16_t color, bool filled);
 
-  uint8_t _cs, _rst;
+  Pin _cs, _rst;
   uint16_t _width, _height;
   uint8_t _textScale;
   enum RA8875sizes _size;
+  SPI_Interface SPI;
 };
 
 // Colors (RGB565)

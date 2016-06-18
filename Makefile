@@ -8,10 +8,12 @@ PROJ_NAME=freepulse
 
 # This is the directory containing the firmware package
 STM_DIR=/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
+PERIPH_DRIVERS_DIR = /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS/STM32F4xx_StdPeriph_Driver_working
 
 # This is where the source files are located,
 # which are not in the current directory
-SRC_DIRS = $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/src
+# SRC_DIRS = $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/src
+SRC_DIRS = $(PERIPH_DRIVERS_DIR)/src 
 SRC_DIRS += ./libraries/src
 SRC_DIRS += ./system/src 
 SRC_DIRS += ./src
@@ -35,9 +37,11 @@ SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/star
 
 # The header files we use are located here
 # INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
-INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Include
-INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
-INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
+INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Include
+# INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
+INC_DIRS += $(PERIPH_DRIVERS_DIR)/inc
+# INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
 INC_DIRS += ./libraries/inc
 INC_DIRS += ./system/inc
 INC_DIRS += ./inc

@@ -5,173 +5,224 @@
  * register-level pushing around for GPIO and other 
  * peripherals.
  */
+#ifndef __System_h__
+#define __System_h__
 
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
 
-#define PA0 Pin(A0)
-#define PA1 Pin(PA1)
-#define PA2 Pin(PA2)
-#define PA3 Pin(PA3)
-#define PA4 Pin(PA4)
-#define PA5 Pin(PA5)
-#define PA6 Pin(PA6)
-#define PA7 Pin(PA7)
-#define PA8 Pin(PA8)
-#define PA9 Pin(PA9)
-#define PA10 Pin(A10)
-#define PA11 Pin(A11)
-#define PA12 Pin(A12)
-#define PA13 Pin(A13)
-#define PA14 Pin(A14)
-#define PB0 Pin(PB0)
-#define PB1 Pin(PB1)
-#define PB2 Pin(PB2)
-#define PB3 Pin(PB3)
-#define PB4 Pin(PB4)
-#define PB5 Pin(PB5)
-#define PB6 Pin(PB6)
-#define PB7 Pin(PB7)
-#define PB8 Pin(PB8)
-#define PB9 Pin(PB9)
-#define PB10 Pin(B10)
-#define PB11 Pin(B11)
-#define PB12 Pin(B12)
-#define PB13 Pin(B13)
-#define PB14 Pin(B14)
-#define PC0 Pin(PC0)
-#define PC1 Pin(PC1)
-#define PC2 Pin(PC2)
-#define PC3 Pin(PC3)
-#define PC4 Pin(PC4)
-#define PC5 Pin(PC5)
-#define PC6 Pin(PC6)
-#define PC7 Pin(PC7)
-#define PC8 Pin(PC8)
-#define PC9 Pin(PC9)
-#define PC10 Pin(C10)
-#define PC11 Pin(C11)
-#define PC12 Pin(C12)
-#define PC13 Pin(C13)
-#define PC14 Pin(C14)
-
+#define HIGH 1
+#define LOW 0
 
 enum Pin_Num {
-	A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14,
-	B0, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14,
-	C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14
+	PA0, PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14,
+	PB0, PB1, PB2, PB3, PB4, PB5, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14,
+	PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14
 };
 
 class Pin {
 public:
-	Pin_Num pin;
 	GPIO_TypeDef* GPIOx;
 	int physical_pin;
+	Pin(){
+		this->GPIOx = 0;
+		this->physical_pin = 0;
+	}
+	Pin(Pin& other_pin){
+		this->GPIOx = other_pin.GPIOx;
+		this->physical_pin = other_pin.physical_pin;
+	}
 	Pin(Pin_Num pin){
 		switch(pin) {
-			case A0:
+			case PA0:
 				physical_pin = 0;
-			case A1:
+				GPIOx = GPIOA;
+				break;
+			case PA1:
 				physical_pin = 1;
-			case A2:
+				GPIOx = GPIOA;
+				break;
+			case PA2:
 				physical_pin = 2;
-			case A3:
+				GPIOx = GPIOA;
+				break;
+			case PA3:
 				physical_pin = 3;
-			case A4:
+				GPIOx = GPIOA;
+				break;
+			case PA4:
 				physical_pin = 4;
-			case A5:
+				GPIOx = GPIOA;
+				break;
+			case PA5:
 				physical_pin = 5;
-			case A6:
+				GPIOx = GPIOA;
+				break;
+			case PA6:
 				physical_pin = 6;
-			case A7:
+				GPIOx = GPIOA;
+				break;
+			case PA7:
 				physical_pin = 7;
-			case A8:
+				GPIOx = GPIOA;
+				break;
+			case PA8:
 				physical_pin = 8;
-			case A9:
+				GPIOx = GPIOA;
+				break;
+			case PA9:
 				physical_pin = 9;
-			case A10:
+				GPIOx = GPIOA;
+				break;
+			case PA10:
 				physical_pin = 10;
-			case A11:
+				GPIOx = GPIOA;
+				break;
+			case PA11:
 				physical_pin = 11;
-			case A12:
+				GPIOx = GPIOA;
+				break;
+			case PA12:
 				physical_pin = 12;
-			case A13:
+				GPIOx = GPIOA;
+				break;
+			case PA13:
 				physical_pin = 13;
-			case A14:
+				GPIOx = GPIOA;
+				break;
+			case PA14:
 				physical_pin = 14;
 				GPIOx = GPIOA;
 				break;
-			case B0:
+			case PB0:
 				physical_pin = 0;
-			case B1: 
+				GPIOx = GPIOB;
+				break;
+			case PB1: 
 				physical_pin = 1;
-			case B2:
+				GPIOx = GPIOB;
+				break;
+			case PB2:
 				physical_pin = 2;
-			case B3:
+				GPIOx = GPIOB;
+				break;
+			case PB3:
 				physical_pin = 3;
-			case B4:
+				GPIOx = GPIOB;
+				break;
+			case PB4:
 				physical_pin = 4;
-			case B5:
+				GPIOx = GPIOB;
+				break;
+			case PB5:
 				physical_pin = 5;
-			case B6:
+				GPIOx = GPIOB;
+				break;
+			case PB6:
 				physical_pin = 6;
-			case B7:
+				GPIOx = GPIOB;
+				break;
+			case PB7:
 				physical_pin = 7;
-			case B8:
+				GPIOx = GPIOB;
+				break;
+			case PB8:
 				physical_pin = 8;
-			case B9:
+				GPIOx = GPIOB;
+				break;
+			case PB9:
 				physical_pin = 9;
-			case B10:
+				GPIOx = GPIOB;
+				break;
+			case PB10:
 				physical_pin = 10;
-			case B11:
+				GPIOx = GPIOB;
+				break;
+			case PB11:
 				physical_pin = 11;
-			case B12:
+				GPIOx = GPIOB;
+				break;
+			case PB12:
 				physical_pin = 12;
-			case B13:
+				GPIOx = GPIOB;
+				break;
+			case PB13:
 				physical_pin = 13;
-			case B14:
+				GPIOx = GPIOB;
+				break;
+			case PB14:
 				physical_pin = 14;
 				GPIOx = GPIOB;
 				break;
-			case C0:
+			case PC0:
 				physical_pin = 0;
-			case C1:
+				GPIOx = GPIOC;
+				break;
+			case PC1:
 				physical_pin = 1;
-			case C2:
+				GPIOx = GPIOC;
+				break;
+			case PC2:
 				physical_pin = 2;
-			case C3:
+				GPIOx = GPIOC;
+				break;
+			case PC3:
 				physical_pin = 3;
-			case C4:
+				GPIOx = GPIOC;
+				break;
+			case PC4:
 				physical_pin = 4;
-			case C5:
+				GPIOx = GPIOC;
+				break;
+			case PC5:
 				physical_pin = 5;
-			case C6:
+				GPIOx = GPIOC;
+				break;
+			case PC6:
 				physical_pin = 6;
-			case C7:
+				GPIOx = GPIOC;
+				break;
+			case PC7:
 				physical_pin = 7;
-			case C8:
+				GPIOx = GPIOC;
+				break;
+			case PC8:
 				physical_pin = 8;
-			case C9:
+				GPIOx = GPIOC;
+				break;
+			case PC9:
 				physical_pin = 9;
-			case C10:
+				GPIOx = GPIOC;
+				break;
+			case PC10:
 				physical_pin = 10;
-			case C11:
+				GPIOx = GPIOC;
+				break;
+			case PC11:
 				physical_pin = 11;
-			case C12: 
+				GPIOx = GPIOC;
+				break;
+			case PC12: 
 				physical_pin = 12;
-			case C13: 
+				GPIOx = GPIOC;
+				break;
+			case PC13: 
 				physical_pin = 13;
-			case C14:
+				GPIOx = GPIOC;
+				break;
+			case PC14:
 				physical_pin = 14;
 				GPIOx = GPIOC;
 				break;
 		}
-	};
+	}
 };
 
-enum Pu_Pd { UP, DOWN, NONE};
+enum Pu_Pd { UP, DOWN, NO_PU_PD};
 enum GPIO_Mode { INPUT, OUTPUT, ALT };
-void configure_GPIO(Pin pin, Pu_Pd resistor, GPIO_Mode mode) {
+
+void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
+	Pin pin(pn);
 	GPIO_InitTypeDef GPIO_InitStructure;
 	if (pin.GPIOx == GPIOA) { RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE); }
 	else if (pin.GPIOx == GPIOB) { RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); }
@@ -196,8 +247,42 @@ void configure_GPIO(Pin pin, Pu_Pd resistor, GPIO_Mode mode) {
 		case DOWN:
 			GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_DOWN;
 			break;
-		case NONE:
+		case NO_PU_PD:
 			GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
 	}
     GPIO_Init(pin.GPIOx, &GPIO_InitStructure); 	
 };
+
+void digitalWrite(Pin pin, int state) {
+	uint16_t pin_addr = (1 << (pin.physical_pin));
+	switch(state) {
+		case 0:
+			pin.GPIOx->BSRRH |= pin_addr;
+			break;
+		default:
+			pin.GPIOx->BSRRL |= pin_addr;
+	}
+};
+
+void analogWrite(Pin pin, int value);
+
+int digitalRead(Pin pin) {
+	uint16_t pin_addr = (1 << (pin.physical_pin));
+	if (pin.GPIOx->IDR & pin_addr) { return 1; }
+	else { return 0; }
+};
+
+int analogRead(Pin pin);
+
+// A very rough delay function. Not highly accurate, but
+// we are only using it for stalling until a peripheral is 
+// initialized.
+static void delay(__IO uint32_t nCount)
+{
+	//nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
+    while(nCount--)
+        __asm("nop"); // do nothing
+}
+
+
+#endif

@@ -2,11 +2,8 @@
 
 #include <stdint.h>
 #include "stm32f4xx.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "stm32f4xx_spi.h"
-
-#include "Adafruit_RA8875.h"
+#include "System.h"
+#include "Adafruit_Compat.h"
 
 #define PAUSE_LONG  4000000L
 #define PAUSE_SHORT 1000000L
@@ -18,10 +15,11 @@ SPI_InitTypeDef SPI_InitStruct;
 #define RA8875_PINK        0xF81F
 #define RA8875_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
 #define RA8875_LIGHTGREY   0xC618      /* 192, 192, 192 */
-#define RA8875_INT 2
-#define RA8875_WAIT 3
-#define RA8875_CS 4
-#define RA8875_RESET 5
+#define RA8875_INT PC2
+#define RA8875_WAIT PC3
+#define DISPLAY_CS PC4
+#define DISPLAY_RESET PC5
+#define DISPLAY_SPI spi_c1
 #define HOMESCREEN 0
 #define ALARMSCREEN 1
 
@@ -38,7 +36,8 @@ SPI_InitTypeDef SPI_InitStruct;
 #define DEFAULT_SP02_MIN 95
 #define BOXSIZE 60
 
-Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS,RA8875_RESET);
+/* Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS,RA8875_RESET); */
+Display tft(DISPLAY_CS, DISPLAY_RESET, DISPLAY_SPI);
 
 const int s_height = 480;
 const int s_width = 800;
@@ -115,18 +114,8 @@ void SettingsScreenInit(void){
   showGrid();
 }
 
-
-// A very rough delay function. Not highly accurate, but
-// we are only using it for stalling until a peripheral is 
-// initialized.
-static void delay(__IO uint32_t nCount)
-{
-    while(nCount--)
-        __asm("nop"); // do nothing
-}
-
 void gui_init() {
-	success = tft.begin();
+	success = tft.begin(RA8875_800x480);
 	tft.displayOn(true);
 	tft.GPIOX(true);      // Enable TFT - display enable tied to GPIOX
 	tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
