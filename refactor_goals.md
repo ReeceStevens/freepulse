@@ -1,10 +1,8 @@
 Refactor Goals
 ==============
 
-1. Move Arduino compatibility functions (i.e. digitalWrite, analogRead, etc) to a separate class
-	- Leave the original adafruit libraries as intact as possible
+1. Separate out display functionality, interface design, and related constants/methods from main
 
-2. Revisit the screen element / interface / ecg_revised division. Restructure and give better function, variable names.
-	- "Functions should only do one thing, and do it well"
+2. Abstract away GPIO, SPI, and other peripheral controls. Reference pins by their documentation name (i.e. PA1, PC5)
 
-3. Unit testing via the Google Testing Framework
+3. Unit test everything that can be unit tested.
