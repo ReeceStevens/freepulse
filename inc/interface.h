@@ -25,8 +25,6 @@ public:
     }
 };
 
-
-
 /*
  * TODO: Write a function that uses the button_str argument
  * and creates a button label. Center the label based on the size

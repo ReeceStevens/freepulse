@@ -13,6 +13,8 @@
 
 #define HIGH 1
 #define LOW 0
+#define PAUSE_LONG  4000000L
+#define PAUSE_SHORT 1000000L
 
 enum Pin_Num {
 	PA0, PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14,
@@ -266,7 +268,8 @@ void digitalWrite(Pin pin, int state) {
 
 void analogWrite(Pin pin, int value);
 
-int digitalRead(Pin pin) {
+int digitalRead(Pin_Num pn) {
+	Pin pin(pn);
 	uint16_t pin_addr = (1 << (pin.physical_pin));
 	if (pin.GPIOx->IDR & pin_addr) { return 1; }
 	else { return 0; }
@@ -279,7 +282,6 @@ int analogRead(Pin pin);
 // initialized.
 static void delay(__IO uint32_t nCount)
 {
-	//nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
     while(nCount--)
         __asm("nop"); // do nothing
 }
