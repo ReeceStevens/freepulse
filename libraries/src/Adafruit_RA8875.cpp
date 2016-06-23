@@ -25,7 +25,8 @@
 */
 /**************************************************************************/
 #include "SPI.h"
-#include "Adafruit_Compat.h"
+#include "System.h"
+#include "Adafruit_RA8875.h"
 
 void delay(int time);
 #define HIGH 1

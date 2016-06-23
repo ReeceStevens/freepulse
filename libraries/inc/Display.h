@@ -38,15 +38,22 @@ private:
 public:
 	uint16_t* touch_points;
 	Pin_Num interrupt, wait, cs, rst;
-
-	Display(Pin_Num cs, Pin_Num rst, SPI_Channel SPIx):Adafruit_RA8875(cs,rst){
+	int width = _width;
+	int height = _height;
+	int rows;
+	int columns;
+	int vertical_scale;
+	int horizontal_scale;
+	
+	Display(Pin_Num cs, Pin_Num rst, SPI_Channel SPIx, int rows, int columns):
+		Adafruit_RA8875(cs,rst), cs(cs), rst(rst), rows(rows), columns(columns){
 		this->interrupt = PC2;
 		configure_GPIO(this->interrupt, UP, OUTPUT); // INT pin
 		this->wait = PC3;
 		configure_GPIO(this->wait, UP, OUTPUT); // WAIT pin
 		this->SPI = new SPI_Interface(SPIx);
-		this->cs = cs;
-		this->rst = rst;
+		this->vertical_scale = height / rows;
+		this->horizontal_scale = width / columns;
 	}
 	
 	void startup() {
@@ -59,10 +66,6 @@ public:
 		touchEnable(true);
 	}
 
-	void clearScreen(int color){
-		this->fillScreen(color);
-	}
-	
 	void read_touch(){
 		uint16_t tx,ty;
 		this->touchRead(&tx, &ty);
@@ -79,6 +82,15 @@ public:
 	void reset_touch() {
 		this->touch_points[0] = 0;
 		this->touch_points[1] = 0;
+	}
+
+	void showGrid(void){
+		for (int i = 1; i < rows; i += 1) {
+			drawLine(1,i*vertical_scale,width-1,i*vertical_scale,RA8875_LIGHTGREY);
+		}
+		for (int i = 1; i < columns; i += 1) {
+			drawLine(i*horizontal_scale,1,i*horizontal_scale,height-1,RA8875_LIGHTGREY);
+		}
 	}
 };
 #endif

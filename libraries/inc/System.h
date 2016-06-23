@@ -8,8 +8,13 @@
 #ifndef __System_h__
 #define __System_h__
 
+#include "core_cm4.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
+#include "stm32f4xx_tim.h"
+#include "stm32f4xx_syscfg.h"
+#include "stm32f4xx_adc.h"
+#include "misc.h"
 
 #define HIGH 1
 #define LOW 0
@@ -221,7 +226,7 @@ public:
 };
 
 enum Pu_Pd { UP, DOWN, NO_PU_PD};
-enum GPIO_Mode { INPUT, OUTPUT, ALT };
+enum GPIO_Mode { INPUT, OUTPUT, ANALOG, ALT };
 
 void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
 	Pin pin(pn);
@@ -236,6 +241,9 @@ void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
 			break;
 		case OUTPUT:
 			GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
+			break;
+		case ANALOG:
+			GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AN;
 			break;
 		case ALT:
 			GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
@@ -255,6 +263,28 @@ void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
     GPIO_Init(pin.GPIOx, &GPIO_InitStructure); 	
 };
 
+int adcInit(void) {
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+
+	ADC_CommonInitTypeDef ADC_CommonInitStruct;
+	ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent;
+	ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div2;
+	ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled;
+	ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
+	ADC_CommonInit(&ADC_CommonInitStruct);
+
+	ADC_InitTypeDef ADC_init_structure;
+	ADC_init_structure.ADC_Resolution = ADC_Resolution_12b;
+	ADC_init_structure.ADC_ScanConvMode = DISABLE;
+	ADC_init_structure.ADC_ContinuousConvMode = DISABLE; 
+	ADC_init_structure.ADC_ExternalTrigConv = DISABLE;
+	ADC_init_structure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+	ADC_init_structure.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_init_structure.ADC_NbrOfConversion = 1;
+	ADC_Init(ADC1,&ADC_init_structure);
+	ADC_Cmd(ADC1,ENABLE);
+}
+
 void digitalWrite(Pin pin, int state) {
 	uint16_t pin_addr = (1 << (pin.physical_pin));
 	switch(state) {
@@ -266,7 +296,7 @@ void digitalWrite(Pin pin, int state) {
 	}
 };
 
-void analogWrite(Pin pin, int value);
+void analogWrite(Pin pin, int value); // TODO
 
 int digitalRead(Pin_Num pn) {
 	Pin pin(pn);
@@ -275,7 +305,66 @@ int digitalRead(Pin_Num pn) {
 	else { return 0; }
 };
 
-int analogRead(Pin pin);
+int analogRead(Pin_Num pn){
+	configure_GPIO(pn, NO_PU_PD, ANALOG);
+	uint8_t channel;
+	switch(pn) {
+		case PA0:
+			channel = ADC_Channel_0;
+			break;
+		case PA1:
+			channel = ADC_Channel_1;
+			break;
+		case PA2:
+			channel = ADC_Channel_2;
+			break;
+		case PA3:
+			channel = ADC_Channel_3;
+			break;
+		case PA4:
+			channel = ADC_Channel_4;
+			break;
+		case PA5:
+			channel = ADC_Channel_5;
+			break;
+		case PA6:
+			channel = ADC_Channel_6;
+			break;
+		case PA7:
+			channel = ADC_Channel_7;
+			break;
+		case PB0:
+			channel = ADC_Channel_8;
+			break;
+		case PB1:
+			channel = ADC_Channel_9;
+			break;
+		case PC0:
+			channel = ADC_Channel_10;
+			break;
+		case PC1:
+			channel = ADC_Channel_11;
+			break;
+		case PC2:
+			channel = ADC_Channel_12;
+			break;
+		case PC3:
+			channel = ADC_Channel_13;
+			break;
+		case PC4:
+			channel = ADC_Channel_14;
+			break;
+		case PC5:
+			channel = ADC_Channel_15;
+			break;
+		default:
+			return 0;
+	}
+	ADC_RegularChannelConfig(ADC1,channel,1,ADC_SampleTime_144Cycles);
+	ADC_SoftwareStartConv(ADC1);
+	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)) { };
+	return ADC_GetConversionValue(ADC1); 
+}; 
 
 // A very rough delay function. Not highly accurate, but
 // we are only using it for stalling until a peripheral is 
@@ -286,5 +375,67 @@ static void delay(__IO uint32_t nCount)
         __asm("nop"); // do nothing
 }
 
+enum TimerChannel {
+	tim1, tim2, tim3
+};
+
+class Sampler {
+public: 
+	int sampling_rate;
+	TIM_TypeDef* TIMx;
+	TimerChannel timx;
+
+	Sampler(double sampling_rate, TimerChannel timx):
+		sampling_rate(sampling_rate), timx(timx) {
+		switch(timx){
+			case tim1:
+				this->TIMx = TIM1;
+				break;
+			case tim2:
+				this->TIMx = TIM2;
+				break;
+			case tim3:
+				this->TIMx = TIM3;
+				break;
+		}
+	}
+
+	void enable(){
+		NVIC_InitTypeDef NVIC_InitStructure;
+
+		switch(this->timx){
+			case tim1:
+				RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); // APB1 clock speed = 42 MHz
+				NVIC_InitStructure.NVIC_IRQChannel = TIM1_IRQn;
+				break;
+			case tim2:
+				RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); // APB1 clock speed = 42 MHz
+				NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+				break;
+			case tim3:
+				RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // APB1 clock speed = 42 MHz
+				NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+				break;
+		}
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+		NVIC_Init(&NVIC_InitStructure);
+		
+		TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+		//TIM_TimeBaseStructure.TIM_Period = 65535; // 1 MHz down to 1 KHz (1 ms)
+		TIM_TimeBaseStructure.TIM_Prescaler = 100 - 1; // 100 MHz Clock down to 1 MHz (adjust per your clock)
+		TIM_TimeBaseStructure.TIM_Period = (1000000/this->sampling_rate) - 1; // 1 MHz down to sampling_rate Hz 
+		TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+		TIM_TimeBaseInit(this->TIMx, &TIM_TimeBaseStructure);
+		TIM_Cmd(this->TIMx, ENABLE);
+		TIM_ITConfig(this->TIMx, TIM_IT_Update, ENABLE);
+
+		TIM_ClearITPendingBit(this->TIMx, TIM_IT_Update);
+		TIM_SetCounter(this->TIMx, 0);
+		TIM_ITConfig(this->TIMx, TIM_IT_Update, ENABLE);
+	}
+};
 
 #endif
