@@ -12,7 +12,6 @@ enum SPI_Channel {
 class SPI_Interface {
 public:
 	SPI_Channel SPIc;
-
 	SPI_TypeDef* SPIx;
 
 	SPI_Interface(SPI_Channel SPIc) {
@@ -47,16 +46,6 @@ public:
 		GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
 		GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
 
-		// Initialize CS and RST pin
-		configure_GPIO(PC4, UP, OUTPUT); // CS pin
-		configure_GPIO(PC5, UP, OUTPUT); // RST pin
-
-		Pin rst(PC5);
-		Pin cs(PC4);
-
-		digitalWrite(cs, HIGH);
-		digitalWrite(rst, HIGH);
-
 		switch(this->SPIc){
 			case spi_c1:
 				RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
@@ -77,16 +66,7 @@ public:
 
 		configure(&SPI_InitStruct);
 		SPI_Init(this->SPIx, &SPI_InitStruct);
-
-		// Toggle the reset pin
-		digitalWrite(rst, LOW);
-		delay(100000L);
-		digitalWrite(rst, HIGH);
-		delay(100000L);
-
 		SPI_Cmd(this->SPIx, ENABLE);
-
-		digitalWrite(cs, HIGH);	
 	};
 
 	void configure(SPI_InitTypeDef* SPI_InitStruct){
@@ -105,7 +85,7 @@ public:
 		SPI_InitStruct->SPI_CPOL = SPI_CPOL_Low;        
 		SPI_InitStruct->SPI_CPHA = SPI_CPHA_1Edge;      
 		SPI_InitStruct->SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; 
-		SPI_InitStruct->SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+		SPI_InitStruct->SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
 		SPI_InitStruct->SPI_FirstBit = SPI_FirstBit_MSB;
 	};
 
@@ -117,7 +97,7 @@ public:
 		return this->SPIx->DR; // return received data from SPI data register
 	};
 
-	/* void setClockDivider(uint8_t clock_divider); */
-	/* void setDataMode(); */
+	/* void setClockDivider(uint8_t clock_divider){}; */
+	/* void setDataMode(){}; */
 };
 #endif

@@ -52,9 +52,10 @@ public:
 		draw_border();
     }
 
-	void read(void) {
+	int read(void) {
 		int ecg_data = analogRead(pn);
 		fifo.add(ecg_data);
+		return ecg_data;
 	}
 
 	void display_signal(void) {

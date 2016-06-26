@@ -53,7 +53,7 @@ typedef struct //Matrix
 
 class Adafruit_RA8875 : public Adafruit_GFX {
  public:
-  Adafruit_RA8875(Pin_Num cs, Pin_Num rst);
+  Adafruit_RA8875(Pin_Num cs, Pin_Num rst, SPI_Interface* SPIx);
   
   boolean begin(enum RA8875sizes s);
   void    softReset(void);
@@ -137,11 +137,11 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void ellipseHelper(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint16_t color, bool filled);
   void curveHelper(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint8_t curvePart, uint16_t color, bool filled);
 
-  Pin _cs, _rst;
+  Pin_Num _cs, _rst;
   uint16_t _width, _height;
   uint8_t _textScale;
   enum RA8875sizes _size;
-  SPI_Interface SPI;
+  SPI_Interface* SPI;
 };
 
 // Colors (RGB565)

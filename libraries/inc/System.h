@@ -8,18 +8,22 @@
 #ifndef __System_h__
 #define __System_h__
 
-#include "core_cm4.h"
+
+#include <stdio.h>
+
+#include "stm32f4xx.h"
+#include "stm32f4xx_syscfg.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_tim.h"
-#include "stm32f4xx_syscfg.h"
 #include "stm32f4xx_adc.h"
+#include "stm32f4xx_usart.h"
 #include "misc.h"
 
 #define HIGH 1
 #define LOW 0
-#define PAUSE_LONG  4000000L
-#define PAUSE_SHORT 1000000L
+#define PAUSE_LONG  40
+#define PAUSE_SHORT 10
 
 enum Pin_Num {
 	PA0, PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14,
@@ -228,7 +232,7 @@ public:
 enum Pu_Pd { UP, DOWN, NO_PU_PD};
 enum GPIO_Mode { INPUT, OUTPUT, ANALOG, ALT };
 
-void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
+static void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
 	Pin pin(pn);
 	GPIO_InitTypeDef GPIO_InitStructure;
 	if (pin.GPIOx == GPIOA) { RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE); }
@@ -263,7 +267,7 @@ void configure_GPIO(Pin_Num pn, Pu_Pd resistor, GPIO_Mode mode) {
     GPIO_Init(pin.GPIOx, &GPIO_InitStructure); 	
 };
 
-int adcInit(void) {
+static int adcInit(void) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
 
 	ADC_CommonInitTypeDef ADC_CommonInitStruct;
@@ -283,9 +287,11 @@ int adcInit(void) {
 	ADC_init_structure.ADC_NbrOfConversion = 1;
 	ADC_Init(ADC1,&ADC_init_structure);
 	ADC_Cmd(ADC1,ENABLE);
+	return 0;
 }
 
-void digitalWrite(Pin pin, int state) {
+static void digitalWrite(Pin_Num pn, int state) {
+	Pin pin(pn);
 	uint16_t pin_addr = (1 << (pin.physical_pin));
 	switch(state) {
 		case 0:
@@ -296,16 +302,16 @@ void digitalWrite(Pin pin, int state) {
 	}
 };
 
-void analogWrite(Pin pin, int value); // TODO
+static void analogWrite(Pin_Num pn, int value); // TODO: will need this for NIBP valve
 
-int digitalRead(Pin_Num pn) {
+static int digitalRead(Pin_Num pn) {
 	Pin pin(pn);
 	uint16_t pin_addr = (1 << (pin.physical_pin));
 	if (pin.GPIOx->IDR & pin_addr) { return 1; }
 	else { return 0; }
 };
 
-int analogRead(Pin_Num pn){
+static int analogRead(Pin_Num pn){
 	configure_GPIO(pn, NO_PU_PD, ANALOG);
 	uint8_t channel;
 	switch(pn) {
@@ -369,14 +375,17 @@ int analogRead(Pin_Num pn){
 // A very rough delay function. Not highly accurate, but
 // we are only using it for stalling until a peripheral is 
 // initialized.
-static void delay(__IO uint32_t nCount)
+static void delay(__IO long nCount)
 {
-    while(nCount--)
-        __asm("nop"); // do nothing
+	volatile int delay_tally = nCount * 10000;
+	for (int i = 0; i < delay_tally; i ++) {}
+	/* nCount *= 100000; */
+    /* while(nCount--) */
+        /* __asm("nop"); // do nothing */
 }
 
 enum TimerChannel {
-	tim1, tim2, tim3
+	tim2, tim3, tim4
 };
 
 class Sampler {
@@ -388,14 +397,14 @@ public:
 	Sampler(double sampling_rate, TimerChannel timx):
 		sampling_rate(sampling_rate), timx(timx) {
 		switch(timx){
-			case tim1:
-				this->TIMx = TIM1;
-				break;
 			case tim2:
 				this->TIMx = TIM2;
 				break;
 			case tim3:
 				this->TIMx = TIM3;
+				break;
+			case tim4:
+				this->TIMx = TIM4;
 				break;
 		}
 	}
@@ -404,10 +413,6 @@ public:
 		NVIC_InitTypeDef NVIC_InitStructure;
 
 		switch(this->timx){
-			case tim1:
-				RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE); // APB1 clock speed = 42 MHz
-				NVIC_InitStructure.NVIC_IRQChannel = TIM1_IRQn;
-				break;
 			case tim2:
 				RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE); // APB1 clock speed = 42 MHz
 				NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
@@ -415,6 +420,10 @@ public:
 			case tim3:
 				RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); // APB1 clock speed = 42 MHz
 				NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;
+				break;
+			case tim4:
+				RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); // APB1 clock speed = 42 MHz
+				NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;
 				break;
 		}
 		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
@@ -426,6 +435,7 @@ public:
 		//TIM_TimeBaseStructure.TIM_Period = 65535; // 1 MHz down to 1 KHz (1 ms)
 		TIM_TimeBaseStructure.TIM_Prescaler = 100 - 1; // 100 MHz Clock down to 1 MHz (adjust per your clock)
 		TIM_TimeBaseStructure.TIM_Period = (1000000/this->sampling_rate) - 1; // 1 MHz down to sampling_rate Hz 
+		/* TIM_TimeBaseStructure.TIM_Period = 1000 - 1; // 1 MHz down to sampling_rate Hz */ 
 		TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 		TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 		TIM_TimeBaseInit(this->TIMx, &TIM_TimeBaseStructure);
@@ -435,6 +445,85 @@ public:
 		TIM_ClearITPendingBit(this->TIMx, TIM_IT_Update);
 		TIM_SetCounter(this->TIMx, 0);
 		TIM_ITConfig(this->TIMx, TIM_IT_Update, ENABLE);
+	}
+};
+
+class Console {
+public:
+	USART_TypeDef* USARTx;
+	int baudrate;
+
+	Console(USART_TypeDef* USARTx, int baudrate):
+		USARTx(USARTx), baudrate(baudrate) {}
+
+	void configure() {
+		/* RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE); */
+		/* Configure USART2 Tx (PA.02) as alternate function push-pull */
+		/* GPIO_InitTypeDef GPIO_InitStructure; */
+		/* GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; */
+		/* GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz; */
+		/* GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF; */
+		/* GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; */
+		/* GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; */
+		/* GPIO_Init(GPIOA, &GPIO_InitStructure); */
+		configure_GPIO(PA2, UP, ALT);
+		// Map USART2 to A.02
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
+
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+		USART_InitTypeDef USART_InitStructure;
+		// Initialize USART
+		USART_InitStructure.USART_BaudRate = this->baudrate;
+		USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+		USART_InitStructure.USART_StopBits = USART_StopBits_1;
+		USART_InitStructure.USART_Parity = USART_Parity_No;
+		USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+		USART_InitStructure.USART_Mode = USART_Mode_Tx;
+		/* Configure USART */
+		USART_Init(USARTx, &USART_InitStructure);
+		/* Enable the USART */
+		USART_Cmd(USARTx, ENABLE);
+	}
+
+	int putcharx(int ch) {
+		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);
+		USART_SendData(USART2, (uint8_t)ch);
+		return ch;
+	}
+
+	int strlen(const char* str) {
+		int i = 0;
+		while (str[i]) {
+			i += 1;
+		}
+		return i;
+	}
+
+	int strlen(char* str) {
+		int i = 0;
+		while (str[i]) {
+			i += 1;
+		}
+		return i;
+	}
+
+	void print(const char* message) {
+		int len = strlen(message);
+		for (int i = 0; i < len; i ++) {
+			putcharx(message[i]);
+		}
+	}
+
+	void print(int value) {
+		char message[20];
+		sprintf(message, "%d", value);
+		int len = 0;
+		while (message[len]) {
+			len += 1;
+		}
+		for (int i = 0; i < len; i ++) {
+			putcharx((int) (message[i]));
+		}
 	}
 };
 
