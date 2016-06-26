@@ -1,195 +1,30 @@
-#define NULL 0
-
-#include <stdint.h>
-#include "stm32f4xx.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "stm32f4xx_spi.h"
-
-#include "Adafruit_RA8875.h"
-
-#define PAUSE_LONG  4000000L
-#define PAUSE_SHORT 1000000L
-
-GPIO_InitTypeDef GPIO_InitStructure;
-SPI_InitTypeDef SPI_InitStruct;
-
-/* BEGIN DISPLAY CODE */
-#define RA8875_PINK        0xF81F
-#define RA8875_GREENYELLOW 0xAFE5      /* 173, 255,  47 */
-#define RA8875_LIGHTGREY   0xC618      /* 192, 192, 192 */
-#define RA8875_INT 2
-#define RA8875_WAIT 3
-#define RA8875_CS 4
-#define RA8875_RESET 5
-#define HOMESCREEN 0
-#define ALARMSCREEN 1
-
-// This is calibration data for the raw touch data to the screen coordinates
-#define TS_MINX 150
-#define TS_MINY 130
-#define TS_MAXX 3800
-#define TS_MAXY 4000
-
-// These are for default alarm values and UI
-#define DEFAULT_ECG_MAX 98
-#define DEFAULT_ECG_MIN 90
-#define DEFAULT_SP02_MAX 100
-#define DEFAULT_SP02_MIN 95
-#define BOXSIZE 60
-
-Adafruit_RA8875 tft = Adafruit_RA8875(RA8875_CS,RA8875_RESET);
-
-const int s_height = 480;
-const int s_width = 800;
-const float xScale = 1024.0F/s_width;
-const float yScale = 1024.0F/s_height;
-
-// Defining screen proportions
-const int rows = 10;
-const int columns = 10;
-
-const int vertical_scale = s_height / rows;
-const int horizontal_scale = s_width / columns;
+#include "System.h"
+#include "Display.h"
 
 #include "interface.h"
 #include "ecg_revised.h"
 
+#define DISPLAY_CS PC4
+#define DISPLAY_RESET PC5
+#define DISPLAY_SPI spi_c1
+
+#define SCREEN_ROWS 10
+#define SCREEN_COLUMNS 10
+
+SPI_Interface display_spi(DISPLAY_SPI);
+Display tft(DISPLAY_CS, DISPLAY_RESET, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
+
 int currentMode = 0; // Change mode
 
-// Keep track of screen inversion and alarm state
-volatile int inverted = 0;
-volatile int activeAlarm = 0;
-
-bool success;
-
 /* Build UI Buttons */
-
 Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
+Button record = Button(5,9,2,2,RA8875_BLUE,"Data to Serial",true,&tft);
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
 Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
 Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",true,&tft);
 TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,"FreePulse Patient Monitor v0.9", &tft);
-
-ECGReadout ecg = ECGReadout(2,1,3,8,15,RA8875_BLUE,RA8875_LIGHTGREY,&tft);
+ECGReadout ecg = ECGReadout(2,1,3,8,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&tft);
 TextBox heartrate = TextBox(2,9,3,2,RA8875_BLACK,RA8875_WHITE,4,true,"60", &tft);
-
-/*
- * showGrid() - 
- * DEVELOPMENT FUNCTION ONLY.
- * Draw gridlines for interface.
- */
-void showGrid(void){
-    for (int i = 1; i < rows; i += 1) {
-        tft.drawLine(1,i*vertical_scale,s_width-1,i*vertical_scale,RA8875_LIGHTGREY);
-    }
-    for (int i = 1; i < columns; i += 1) {
-        tft.drawLine(i*horizontal_scale,1,i*horizontal_scale,s_height-1,RA8875_LIGHTGREY);
-    }
-}
-
-/*
- * clearScreen(int color) - clear screen with specified color
- */
-void clearScreen(int color){
-    tft.fillScreen(color);
-}
-
-void MainScreenInit(void){
-  clearScreen(RA8875_BLACK);
-  showGrid();
-  title.draw();
-  settings.draw();
-  ecg.draw();
-  heartrate.draw();
-  //ecg2.draw();
-  //ecg3.draw();
-}
-
-
-void SettingsScreenInit(void){
-  clearScreen(RA8875_BLACK);
-  confirm_button.draw();
-  default_button.draw();
-  cancel_button.draw();
-  showGrid();
-}
-
-
-// A very rough delay function. Not highly accurate, but
-// we are only using it for stalling until a peripheral is 
-// initialized.
-static void delay(__IO uint32_t nCount)
-{
-    while(nCount--)
-        __asm("nop"); // do nothing
-}
-
-void gui_init() {
-	success = tft.begin();
-	tft.displayOn(true);
-	tft.GPIOX(true);      // Enable TFT - display enable tied to GPIOX
-	tft.PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
-	tft.PWM1out(255);
-
-	// With hardware acceleration this is instant
-	tft.fillScreen(RA8875_BLACK);
-
-	// Touch screen options
-	tft.touchEnable(true);
-}
-
-static void external_IO_setup(void) {
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_10;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-}
-
-// Compatibility Functions
-void digitalWrite_A(int pin, int state) {
-	uint16_t pin_addr = (1 << (pin));
-	switch (state) {
-		case 0: 
-			GPIOA->BSRRH |= pin_addr;
-			break;
-		default: // Anything other than zero is high
-			GPIOA->BSRRL |= pin_addr;
-	}
-}
-
-extern uint8_t digitalRead(int pin);
-
-static void external_LED(__IO uint32_t pause) {
-	digitalWrite_A(10, 1);
-	delay(pause);
-	digitalWrite_A(10,0);
-	delay(pause);
-}
-
-void read_touch(uint16_t* tp){
-	uint16_t tx,ty;
-	tft.touchRead(&tx, &ty);
-	uint32_t tempx = (uint32_t) tx;
-	uint32_t tempy = (uint32_t) ty;
-	tempx *= s_width;
-	tempy *= s_height;
-	tempx /= 1023;
-	tempy /= 1023;
-	tp[0] = (uint16_t) tempx;
-	tp[1] = (uint16_t) tempy;
-	
-}
-
-void reset_tp(uint16_t* tp) {
-	tp[0] = 0;
-	tp[1] = 0;
-}
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
@@ -198,58 +33,73 @@ extern "C" void TIM3_IRQHandler(void) {
 	}
 }
 
+
+void MainScreenInit(void){
+  tft.fillScreen(RA8875_BLACK);
+  tft.showGrid();
+  title.draw();
+  settings.draw();
+  ecg.draw();
+  heartrate.draw();
+}
+
+void SettingsScreenInit(void){
+  tft.fillScreen(RA8875_BLACK);
+  confirm_button.draw();
+  default_button.draw();
+  cancel_button.draw();
+  tft.showGrid();
+}
+
+enum layout{
+	home, alarms	
+};
+
+void systemInit() {
+	adcInit();
+  	tft.startup();
+}
+
 int main(void)
 {
-	uint16_t* tp = new uint16_t[2];
-	uint16_t* entry_tp = new uint16_t[2];
-	char* analog_data = new char[50];
-	ecg.configure();
-	external_IO_setup();
-  	gui_init();
-	delay(PAUSE_LONG);
-  	currentMode = HOMESCREEN;
+	Console c(USART2, 115200);
+	c.configure();
+	c.print("Starting FreePulse...\n");
+  	layout currentMode = home;
+	systemInit();
+	c.print("Welcome!\n");
 	while (1) {
-    MainScreenInit();
-	delay(PAUSE_SHORT);
-	read_touch(tp);
-	reset_tp(tp);
-	while (currentMode == HOMESCREEN) {
-		while (digitalRead(RA8875_INT)){
-			ecg.display_signal();
-			tft.fillRect(290, 200, 330, 230, RA8875_BLACK);
-			tft.textMode();
-			tft.textSetCursor(300,200);
-			tft.textColor(RA8875_WHITE, RA8875_BLACK);
-			tft.textEnlarge(1);
-			uint16_t analog_in_data = ECGReadout::analogRead();
-			sprintf(analog_data, "%d", analog_in_data);
-			tft.textWrite(analog_data);
-			tft.graphicsMode();
-		}
-			read_touch(tp);	
-			if (settings.isTapped(tp[0],tp[1])){
-				clearScreen(RA8875_BLACK);
-				currentMode = ALARMSCREEN;
-				entry_tp[0] = tp[0];
-				entry_tp[1] = tp[1];
+		MainScreenInit();
+		delay(10);
+		tft.read_touch();
+		tft.reset_touch();
+		while (currentMode == home) {
+			while (digitalRead(tft.interrupt)){
+				ecg.display_signal();
+				delay(1);
 			}
-			tft.drawPixel(tp[0],tp[1], RA8875_WHITE);
-	}
-	if (currentMode == ALARMSCREEN) {
-        SettingsScreenInit();
-		delay(PAUSE_SHORT);
-		read_touch(tp);
-		reset_tp(tp);
-		while (currentMode == ALARMSCREEN) {
-			while (digitalRead(RA8875_INT)){}
-			read_touch(tp);
-			tft.drawPixel(tp[0],tp[1], RA8875_WHITE);
-            if (cancel_button.isTapped(tp[0],tp[1])) {
-                clearScreen(RA8875_BLACK);
-                currentMode = HOMESCREEN;
-            }
+			tft.read_touch();	
+			if (settings.isTapped(tft.touch_points[0],tft.touch_points[1])){
+				tft.fillScreen(RA8875_BLACK);
+				currentMode = alarms;
+			}
+			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
-    }
+		if (currentMode == alarms) {
+			SettingsScreenInit();
+			delay(10);
+			tft.read_touch();
+			tft.reset_touch();
+			while (currentMode == alarms) {
+				while (digitalRead(tft.interrupt)){}
+				tft.read_touch();
+				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
+				if (cancel_button.isTapped(tft.touch_points[0],tft.touch_points[1])) {
+					tft.fillScreen(RA8875_BLACK);
+					currentMode = home;
+				}
+			}
+		}
     }
     return 0; 
 }

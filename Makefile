@@ -8,10 +8,13 @@ PROJ_NAME=freepulse
 
 # This is the directory containing the firmware package
 STM_DIR=/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
+PERIPH_DRIVERS_DIR = /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS
 
 # This is where the source files are located,
 # which are not in the current directory
-SRC_DIRS = $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/src
+# SRC_DIRS = $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/src
+SRC_DIRS = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/src 
+SRC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/src
 SRC_DIRS += ./libraries/src
 SRC_DIRS += ./system/src 
 SRC_DIRS += ./src
@@ -28,6 +31,8 @@ SRCS  += stm32f4xx_gpio.c
 SRCS  += stm32f4xx_spi.c
 SRCS  += stm32f4xx_adc.c
 SRCS  += stm32f4xx_tim.c
+SRCS  += stm32f4xx_syscfg.c
+SRCS  += stm32f4xx_usart.c
 SRCS  += misc.c
 SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
@@ -35,12 +40,26 @@ SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/star
 
 # The header files we use are located here
 # INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
-INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Include
-INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
-INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+# INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
+# # /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS/CMSIS/Include
+# INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Include
+# INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
+# INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+
+INC_DIRS  = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/inc
+INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/Include
+INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Include
+INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/ST/STM32F4xx/Include
 INC_DIRS += ./libraries/inc
 INC_DIRS += ./system/inc
 INC_DIRS += ./inc
+
+GTEST_ROOT = /Users/reecestevens/projects/freepulse/googletest/googletest
+TEST_ROOT  = ./tests
+TEST_DIRS  = $(INC_DIRS)
+TEST_DIRS += $(GTEST_ROOT)/include
+TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
+TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
 
 DEPS  = stm32f4xx.h
 DEPS += stm32f4xx_rcc.h
@@ -63,11 +82,13 @@ TOOLS_DIR = /Users/reecestevens/projects/freepulse/tools/gcc-arm-none-eabi-4_8-2
 CC      = $(TOOLS_DIR)/arm-none-eabi-g++
 OBJCOPY = $(TOOLS_DIR)/arm-none-eabi-objcopy
 GDB     = $(TOOLS_DIR)/arm-none-eabi-gdb
+TESTCC  = g++ 
 
 INCLUDE = $(addprefix -I,$(INC_DIRS))
+TESTINCS = $(addprefix -I,$(TEST_DIRS))
 
 # #defines needed when working with the STM library
-DEFS    = -DUSE_STDPERIPH_DRIVER
+DEFS    = -DUSE_STDPERIPH_DRIVER -DSTM32F411xE 
 
 # if you use the following option, you must implement the function 
 #    assert_failed(uint8_t* file, uint32_t line)
@@ -86,13 +107,13 @@ CFLAGS += -felide-constructors -std=c++0x
 LD_DIR = ./linker
 LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 
-OBJS   = main.o
-OBJS  += Adafruit_GFX.o
-OBJS  += Adafruit_GFX.o
-OBJS  += system_stm32f4xx.o
-OBJS  += stm32f4xx_rcc.o 
-OBJS  += stm32f4xx_gpio.o
-OBJS  += stm32f4xx_spi.o
+# OBJS   = main.o
+# OBJS  += Adafruit_GFX.o
+# OBJS  += Adafruit_GFX.o
+# OBJS  += system_stm32f4xx.o
+# OBJS  += stm32f4xx_rcc.o 
+# OBJS  += stm32f4xx_gpio.o
+# OBJS  += stm32f4xx_spi.o
 
 ######################################################################
 #                         SETUP TARGETS                              #
@@ -110,7 +131,7 @@ $(PROJ_NAME).elf: $(SRCS)
 	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
 
 clean:
-	rm -f *.o $(PROJ_NAME).elf $(PROJ_NAME).hex $(PROJ_NAME).bin
+	rm -f *.o $(PROJ_NAME).elf $(PROJ_NAME).hex $(PROJ_NAME).bin test
 
 # Flash the STM32F4
 flash: 
@@ -120,3 +141,7 @@ flash:
 debug:
 # before you start gdb, you must start st-util
 	$(GDB) $(PROJ_NAME).elf
+
+test: $(TEST_SRCS)
+	$(TESTCC) $(TESTINCS) $(TEST_LIBS) $^ -o $@
+	./$@

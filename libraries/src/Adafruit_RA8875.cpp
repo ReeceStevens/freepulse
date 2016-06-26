@@ -24,115 +24,23 @@
     v1.0 - First release
 */
 /**************************************************************************/
-#include <string.h>
+#include "SPI.h"
+#include "System.h"
 #include "Adafruit_RA8875.h"
-#include "stm32f4xx_spi.h"
-#include "stm32f4xx_gpio.h"
 
-#define LOW 0
+/* void delay(int time); */
 #define HIGH 1
-
-#define PAUSE_LONG  4000000L
-#define PAUSE_SHORT 1000000L
-
-// A very rough delay function. Not highly accurate, but
-// we are only using it for stalling until a peripheral is 
-// initialized.
-static void delay(__IO uint32_t nCount)
-{
-	//nCount *= 100; // clock speed (100 MHz) * (1 second / 1e6 microseconds)  = 100 cycles / microsecond
-    while(nCount--)
-        __asm("nop"); // do nothing
-}
-
-// Compatibility Functions
-void digitalWrite(int pin, int state) {
-	uint16_t pin_addr = (1 << (pin));
-	switch (state) {
-		case LOW: 
-			GPIOC->BSRRH |= pin_addr;
+#define LOW 0
+void pinMode(Pin_Num pin, int mode) {
+	switch(mode) {
+		case INPUT:
+			configure_GPIO(pin, NO_PU_PD, INPUT);
 			break;
-		default: // Anything other than zero is high
-			GPIOC->BSRRL |= pin_addr;
+		case OUTPUT:
+			configure_GPIO(pin, NO_PU_PD, OUTPUT);
 	}
-}
+};
 
-uint8_t digitalRead(int pin) {
-	uint16_t pin_addr = (1 << (pin));
-	if (GPIOC->IDR & pin_addr) { return HIGH; }
-	else { return LOW; }
-}
-
-uint8_t SPI1_send(uint8_t data){
-	SPI1->DR = data; // write data to be transmitted to the SPI data register
-	while( !(SPI1->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
-	while( !(SPI1->SR & SPI_I2S_FLAG_RXNE) ); // wait until receive complete
-	while( SPI1->SR & SPI_I2S_FLAG_BSY ); // wait until SPI is not busy anymore
-	return SPI1->DR; // return received data from SPI data register
-}
-
-void spi1_Init(void){
-	GPIO_InitTypeDef GPIO_InitStructure;
-	SPI_InitTypeDef SPI_InitStruct;
-
-	// Initialize alternate function pins A5, A6, and A7
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_SPI1); // SCLK
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
-
-	// Initialize CS and RST pin
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_4 | GPIO_Pin_5;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-    GPIO_Init(GPIOC, &GPIO_InitStructure); // CS and RST
-
-	// Initialize WAIT and INT pins
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_2 | GPIO_Pin_3; 
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-    GPIO_Init(GPIOC, &GPIO_InitStructure); // WAIT and INT
-
-	int rst = 5;
-	int cs = 4;
-	digitalWrite(cs, HIGH);
-	//GPIOC->BSRRL |= GPIO_Pin_4; // CS (low)
-	digitalWrite(rst, HIGH);
-	//GPIOC->BSRRH |= GPIO_Pin_5; // RST (high)
-
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-	SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
-	SPI_InitStruct.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
-	SPI_InitStruct.SPI_DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
-	SPI_InitStruct.SPI_CPOL = SPI_CPOL_Low;        // clock is low when idle
-	SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
-	SPI_InitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-
-	SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; // SPI frequency is APB2 frequency / 4
-	SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted MSB first
-	SPI_Init(SPI1, &SPI_InitStruct); 
-
-	// Toggle the reset pin
-    digitalWrite(rst, LOW);
-    delay(100000L);
-    digitalWrite(rst, HIGH);
-    delay(100000L);
-
-	SPI_Cmd(SPI1, ENABLE);
-
-	digitalWrite(cs, HIGH);
-}
 
 /**************************************************************************/
 /*!
@@ -142,10 +50,7 @@ void spi1_Init(void){
       @args RST[in] Location of the reset pin
 */
 /**************************************************************************/
-Adafruit_RA8875::Adafruit_RA8875(uint8_t CS, uint8_t RST) : Adafruit_GFX(800, 480) {
-  _cs = CS;
-  _rst = RST;
-}
+Adafruit_RA8875::Adafruit_RA8875(Pin_Num CS, Pin_Num RST, SPI_Interface* SPI) : Adafruit_GFX(800, 480), _cs(CS), _rst(RST), SPI(SPI) {}
 
 /**************************************************************************/
 /*!
@@ -156,19 +61,44 @@ Adafruit_RA8875::Adafruit_RA8875(uint8_t CS, uint8_t RST) : Adafruit_GFX(800, 48
                   'RA8875_800x480' (5" and 7" displays)
 */
 /**************************************************************************/
-boolean Adafruit_RA8875::begin() {
-  _size = RA8875_800x480;
-  _width = 800;
-  _height = 480;
+boolean Adafruit_RA8875::begin(enum RA8875sizes s) {
+  _size = s;
 
-  spi1_Init();
-  /*
+  if (_size == RA8875_480x272) {
+    _width = 480;
+    _height = 272;
+  } 
+  if (_size == RA8875_800x480) {
+    _width = 800;
+    _height = 480;
+  }
+
+  pinMode(_cs, OUTPUT);
+  digitalWrite(_cs, HIGH);
+  pinMode(_rst, OUTPUT); 
+  digitalWrite(_rst, LOW);
+
+  digitalWrite(_rst, LOW);
+  delay(100);
+  digitalWrite(_rst, HIGH);
+  delay(100);
+
+  SPI->begin();
+
+#ifdef __AVR__
+  SPI->setClockDivider(SPI_CLOCK_DIV128);
+  SPI->setDataMode(SPI_MODE0);
+#endif
+  
   if (readReg(0) != 0x75) {
     return false;
   }
-  */ 
 
   initialize();
+
+#ifdef __AVR__
+  SPI->setClockDivider(SPI_CLOCK_DIV4);
+#endif
   return true;
 }
 
@@ -183,7 +113,7 @@ void Adafruit_RA8875::softReset(void) {
   writeCommand(RA8875_PWRR);
   writeData(RA8875_PWRR_SOFTRESET);
   writeData(RA8875_PWRR_NORMAL);
-  delay(PAUSE_SHORT);
+  delay(1);
 }
 
 /**************************************************************************/
@@ -194,15 +124,15 @@ void Adafruit_RA8875::softReset(void) {
 void Adafruit_RA8875::PLLinit(void) {
   if (_size == RA8875_480x272) {
     writeReg(RA8875_PLLC1, RA8875_PLLC1_PLLDIV1 + 10);
-    delay(PAUSE_SHORT);
+    delay(1);
     writeReg(RA8875_PLLC2, RA8875_PLLC2_DIV4);
-    delay(PAUSE_SHORT);
+    delay(1);
   }
   if (_size == RA8875_800x480) {
     writeReg(RA8875_PLLC1, RA8875_PLLC1_PLLDIV1 + 10);
-    delay(PAUSE_SHORT);
+    delay(1);
     writeReg(RA8875_PLLC2, RA8875_PLLC2_DIV4);
-    delay(PAUSE_SHORT);
+    delay(1);
   }
 }
 
@@ -214,6 +144,7 @@ void Adafruit_RA8875::PLLinit(void) {
 void Adafruit_RA8875::initialize(void) {
   PLLinit();
   writeReg(RA8875_SYSR, RA8875_SYSR_16BPP | RA8875_SYSR_MCU8);
+
 
   /* Timing values */
   uint8_t pixclk;
@@ -250,11 +181,12 @@ void Adafruit_RA8875::initialize(void) {
   }
 
   writeReg(RA8875_PCSR, pixclk);
-  delay(PAUSE_SHORT);
+  delay(1);
   
   /* Horizontal settings registers */
   writeReg(RA8875_HDWR, (_width / 8) - 1);                          // H width: (HDWR + 1) * 8 = 480
   writeReg(RA8875_HNDFTR, RA8875_HNDFTR_DE_HIGH + hsync_finetune);
+
   writeReg(RA8875_HNDR, (hsync_nondisp - hsync_finetune - 2)/8);    // H non-display: HNDR * 8 + HNDFTR + 2 = 10
   writeReg(RA8875_HSTR, hsync_start/8 - 1);                         // Hsync start: (HSTR + 1)*8 
   writeReg(RA8875_HPWR, RA8875_HPWR_LOW + (hsync_pw/8 - 1));        // HSync pulse width = (HPWR+1) * 8
@@ -284,17 +216,20 @@ void Adafruit_RA8875::initialize(void) {
   
   /* Clear the entire window */
   writeReg(RA8875_MCLR, RA8875_MCLR_START | RA8875_MCLR_FULL);
-  delay(PAUSE_SHORT); writeCommand(RA8875_MWCR0);
+  delay(50); 
+
+  writeCommand(RA8875_MWCR0);
   uint8_t temp = readData();
   temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
   writeData(temp);
-  
+
   /* Select the internal (ROM) font */
   writeCommand(0x21);
   temp = readData();
-  temp &= ~((1<<7) | (1<<5)); // Clear bits 7 and 5
+  temp &= ~((1<<7) | (1<<5));
   writeData(temp);
 }
+
 /**************************************************************************/
 /*!
       Returns the display width in pixels
@@ -325,8 +260,7 @@ void Adafruit_RA8875::textMode(void)
   /* Set text mode */
   writeCommand(RA8875_MWCR0);
   uint8_t temp = readData();
-  temp |= RA8875_MWCR0_TXTMODE; // Set bit 7 (text mode enable)
-  temp &= ~(0xF); // Clear bit 0 (auto-increase cursor)
+  temp |= RA8875_MWCR0_TXTMODE; // Set bit 7
   writeData(temp);
   
   /* Select the internal (ROM) font */
@@ -338,8 +272,8 @@ void Adafruit_RA8875::textMode(void)
   // Clear serial font ROM settings
   writeCommand(0x2F);
   writeData(0x0);
-
 }
+
 /**************************************************************************/
 /*!
       Sets the display in text mode (as opposed to graphics mode)
@@ -445,18 +379,6 @@ void Adafruit_RA8875::textEnlarge(uint8_t scale)
   _textScale = scale;
 }
 
-void Adafruit_RA8875::textRotate(boolean rot)
-{
-  writeCommand(0x22); // Open font control register (FNCR1)
-  uint8_t temp = readData(); // get what's already in the register
-  if (rot) {
-    temp |= 0x10; // Rotate
-  } else {
-	temp &= ~(0x10); // Turn off rotate
-  }
-  writeData(temp);
-}
-
 /**************************************************************************/
 /*!
       Renders some text on the screen when in text mode
@@ -472,6 +394,13 @@ void Adafruit_RA8875::textWrite(const char* buffer, uint16_t len)
   for (uint16_t i=0;i<len;i++)
   {
     writeData(buffer[i]);
+#if defined(__AVR__)
+    if (_textScale > 1) delay(1);
+#elif defined(__arm__)
+    // This delay is needed with textEnlarge(1) because
+    // Teensy 3.X is much faster than Arduino Uno
+    if (_textScale > 0) delay(1);
+#endif
   }
 }
 
@@ -531,10 +460,10 @@ void Adafruit_RA8875::setXY(uint16_t x, uint16_t y) {
 /**************************************************************************/
 void Adafruit_RA8875::pushPixels(uint32_t num, uint16_t p) {
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_DATAWRITE);
+  SPI->transfer(RA8875_DATAWRITE);
   while (num--) {
-    SPI1_send(p >> 8);
-    SPI1_send(p);
+    SPI->transfer(p >> 8);
+    SPI->transfer(p);
   }
   digitalWrite(_cs, HIGH);
 }
@@ -567,9 +496,9 @@ void Adafruit_RA8875::drawPixel(int16_t x, int16_t y, uint16_t color)
   writeReg(RA8875_CURV1, y >> 8);  
   writeCommand(RA8875_MRWC);
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_DATAWRITE);
-  SPI1_send(color >> 8);
-  SPI1_send(color);
+  SPI->transfer(RA8875_DATAWRITE);
+  SPI->transfer(color >> 8);
+  SPI->transfer(color);
   digitalWrite(_cs, HIGH);
 }
 
@@ -1282,11 +1211,9 @@ uint8_t  Adafruit_RA8875::readReg(uint8_t reg)
 /**************************************************************************/
 void  Adafruit_RA8875::writeData(uint8_t d) 
 {
-  while (!digitalRead(3)) {} // Wait until no longer busy
-  delay(1000L);
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_DATAWRITE);
-  SPI1_send(d);
+  SPI->transfer(RA8875_DATAWRITE);
+  SPI->transfer(d);
   digitalWrite(_cs, HIGH);
 }
 
@@ -1297,11 +1224,9 @@ void  Adafruit_RA8875::writeData(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readData(void) 
 {
-  while (!digitalRead(3)) {} // Wait until no longer busy
-  delay(1000L);
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_DATAREAD);
-  uint8_t x = SPI1_send(0x0);
+  SPI->transfer(RA8875_DATAREAD);
+  uint8_t x = SPI->transfer(0x0);
   digitalWrite(_cs, HIGH);
   return x;
 }
@@ -1313,11 +1238,9 @@ uint8_t  Adafruit_RA8875::readData(void)
 /**************************************************************************/
 void  Adafruit_RA8875::writeCommand(uint8_t d) 
 {
-  while (!digitalRead(3)) {} // Wait until no longer busy
-  delay(1000L);
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_CMDWRITE);
-  SPI1_send(d);
+  SPI->transfer(RA8875_CMDWRITE);
+  SPI->transfer(d);
   digitalWrite(_cs, HIGH);
 }
 
@@ -1328,11 +1251,9 @@ void  Adafruit_RA8875::writeCommand(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readStatus(void) 
 {
-  while (!digitalRead(3)) {} // Wait until no longer busy
-  delay(1000L);
   digitalWrite(_cs, LOW);
-  SPI1_send(RA8875_CMDREAD);
-  uint8_t x = SPI1_send(0x0);
+  SPI->transfer(RA8875_CMDREAD);
+  uint8_t x = SPI->transfer(0x0);
   digitalWrite(_cs, HIGH);
   return x;
 }
