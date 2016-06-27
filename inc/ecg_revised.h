@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "System.h"
-#include "CircleFifo.h"
+#include "CircleBuffer.h"
 #include "interface.h"
 #include "misc.h"
 #include "Vector.h"
@@ -17,7 +17,7 @@ private:
 	int avg_cursor;
 	int display_cursor;
 	Pin_Num pn;
-	CircleFifo<int> fifo;
+	CircleBuffer<int> fifo;
 	int scaling_factor;
 	Vector<int> avg_queue;
 	int trace_color;
@@ -32,7 +32,7 @@ public:
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color) {
 		fifo_size = real_width;
-		fifo = CircleFifo<int>(fifo_size);
+		fifo = CircleBuffer<int>(fifo_size);
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
@@ -80,7 +80,7 @@ public:
 		} else {
 			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
 		}
-		display_cursor = CircleFifo<int>::mod(display_cursor+1, real_width); // Advance display cursor
+		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
 		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
 		last_val = new_val;
 	}

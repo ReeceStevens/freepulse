@@ -1,19 +1,19 @@
 #include "gtest/gtest.h"
-#include "CircleFifo.h"
+#include "CircleBuffer.h"
 
 namespace {
 
 // The fixture for testing class Foo.
-class CircleFifoTest : public ::testing::Test {
+class CircleBufferTest : public ::testing::Test {
  protected:
   // You can remove any or all of the following functions if its body
   // is empty.
 
-  CircleFifoTest() {
+  CircleBufferTest() {
     // You can do set-up work for each test here.
   }
 
-  virtual ~CircleFifoTest() {
+  virtual ~CircleBufferTest() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -34,24 +34,24 @@ class CircleFifoTest : public ::testing::Test {
 };
 
 // Tests that the Foo::Bar() method does Abc.
-TEST_F(CircleFifoTest, SimpleAdd) {
-	CircleFifo<int> a = CircleFifo<int>();
+TEST_F(CircleBufferTest, SimpleAdd) {
+	CircleBuffer<int> a = CircleBuffer<int>();
 	int payload = 1;
 	a.add(payload);
 	EXPECT_EQ(a[0], payload);
 	EXPECT_EQ(a[0], a.newest());
 }
 
-TEST_F(CircleFifoTest, ModBehavior) {
-	EXPECT_EQ(CircleFifo<int>::mod(4,5), 4);
-	EXPECT_EQ(CircleFifo<int>::mod(5,4), 1);
-	EXPECT_EQ(CircleFifo<int>::mod(10,4), 2);
-	EXPECT_EQ(CircleFifo<int>::mod(-1,4), 3);
-	EXPECT_EQ(CircleFifo<int>::mod(-3,4), 1);
+TEST_F(CircleBufferTest, ModBehavior) {
+	EXPECT_EQ(CircleBuffer<int>::mod(4,5), 4);
+	EXPECT_EQ(CircleBuffer<int>::mod(5,4), 1);
+	EXPECT_EQ(CircleBuffer<int>::mod(10,4), 2);
+	EXPECT_EQ(CircleBuffer<int>::mod(-1,4), 3);
+	EXPECT_EQ(CircleBuffer<int>::mod(-3,4), 1);
 }
 
-TEST_F(CircleFifoTest, AddLengthPlusOneElements) {
-	CircleFifo<int> a = CircleFifo<int>(5);
+TEST_F(CircleBufferTest, AddLengthPlusOneElements) {
+	CircleBuffer<int> a = CircleBuffer<int>(5);
 	for (int i = 0; i < 6; i ++) {
 		a.add(i);
 	}
@@ -60,8 +60,8 @@ TEST_F(CircleFifoTest, AddLengthPlusOneElements) {
 	EXPECT_EQ(a[4], 1);
 }
 
-TEST_F(CircleFifoTest, AddLotsOfElements) {
-	CircleFifo<int> a = CircleFifo<int>(5);
+TEST_F(CircleBufferTest, AddLotsOfElements) {
+	CircleBuffer<int> a = CircleBuffer<int>(5);
 	int k = 1005;
 	for (int i = 0; i <= k; i ++) {
 		a.add(i);

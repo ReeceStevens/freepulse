@@ -11,10 +11,32 @@ a more detailed post about the motivation and history of the project is on the d
 
 ![alpha_prototype](resources/prototype.jpg)
 
+Navigating the Repository
+-------------------------
+```
+src
+  |- Contains main.cpp
+inc
+  |- Interface classes 
+  |- Signal-acquisition classes
+libraries
+  |- inc
+	  |- Hardware-level wrapper classes
+	  |- Peripheral library header files
+  |- src
+	  |- Peripheral library sources
+linker
+  |- Linker and library specifications
+system
+  |- System-level include configuration
+tests
+  |- Unit tests for all hardware-abstracted classes
+```
+
 Current Project Goals
 ---------------------
 
-1. Successful migration to STM32F4 from Teensy 3.2
+1. Successful migration to STM32F4 from Teensy 3.2 (DONE as of commit a0e37f5)
 
 	- Restore SPI peripheral functionality
 

@@ -1,9 +1,9 @@
-#ifndef __CircleFifo_h__
-#define __CircleFifo_h__ 1
+#ifndef __CircleBuffer_h__
+#define __CircleBuffer_h__ 1
 
 template <typename T>
 
-class CircleFifo {
+class CircleBuffer {
 private:
 	int length;
 	T* data;
@@ -12,7 +12,7 @@ private:
 
 public:
 	// Null case for empty fifo.
-    CircleFifo() {
+    CircleBuffer() {
 		length = 2;
 		data = new T[length];
 		for (int i = 0; i < length; i ++) {
@@ -23,7 +23,7 @@ public:
     }
 
 	// Requests length of N+1 for circular operation
-	CircleFifo(int N) {
+	CircleBuffer(int N) {
 		length = N+1;
 		data = new T[length];	
 		for (int i = 0; i < length; i ++) {
@@ -71,7 +71,7 @@ public:
 		else { return -1; } // Error state. Mod will not be called in this context.
 	}
 
-	~CircleFifo() {
+	~CircleBuffer() {
 		delete [] data;
 	}
 };
