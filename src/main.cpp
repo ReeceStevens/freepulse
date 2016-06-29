@@ -26,10 +26,13 @@ TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,"FreePulse Pati
 ECGReadout ecg = ECGReadout(2,1,3,8,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&tft);
 TextBox heartrate = TextBox(2,9,3,2,RA8875_BLACK,RA8875_WHITE,4,true,"60", &tft);
 
+Console c(USART2, 115200);
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-		ecg.read();
+		int val = ecg.read();
+		c.print(val);
+		c.print("\n");
 	}
 }
 
@@ -62,7 +65,6 @@ void systemInit() {
 
 int main(void)
 {
-	Console c(USART2, 115200);
 	c.configure();
 	c.print("Starting FreePulse...\n");
   	layout currentMode = home;
