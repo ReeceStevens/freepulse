@@ -52,7 +52,9 @@ public:
     }
 
 
-    bool isTapped(uint16_t x, uint16_t y){
+    bool isTapped(){
+		uint16_t x = tft->touch_points[0];
+		uint16_t y = tft->touch_points[1];
 	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
 		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
 				    return true;

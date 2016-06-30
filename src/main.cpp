@@ -81,7 +81,7 @@ int main(void)
 				delay(1);
 			}
 			tft.read_touch();	
-			if (settings.isTapped(tft.touch_points[0],tft.touch_points[1])){
+			if (settings.isTapped()){
 				tft.fillScreen(RA8875_BLACK);
 				currentMode = alarms;
 			}
@@ -96,7 +96,7 @@ int main(void)
 				while (digitalRead(tft.interrupt)){}
 				tft.read_touch();
 				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
-				if (cancel_button.isTapped(tft.touch_points[0],tft.touch_points[1])) {
+				if (cancel_button.isTapped()) {
 					tft.fillScreen(RA8875_BLACK);
 					currentMode = home;
 				}
