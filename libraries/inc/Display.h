@@ -9,31 +9,23 @@
 #ifndef __Display_h__
 #define __Display_h__ 
 
-#include <stdint.h>
-
 #include "SPI.h"
 #include "Adafruit_RA8875.h"
 
 #define RA8875_GREENYELLOW 0xAFE5      
 #define RA8875_LIGHTGREY   0xC618     
 
-#define RA8875_INT PC2
-#define RA8875_WAIT PC3
-
 class Display: public Adafruit_RA8875 {
 private:
 	SPI_Interface* SPI;	
 
 	/* Compatibility function overriding the Adafruit_RA8875::begin() call */
-	bool begin(__attribute__((unused))enum RA8875sizes s){
+	bool begin(__attribute__((unused))enum RA8875sizes s) {
 		_size = RA8875_800x480;
 		digitalWrite(_cs, HIGH);
 		SPI->begin();
-		digitalWrite(_rst, LOW);
-		delay(10);
-		digitalWrite(_rst, HIGH);
-		delay(10);
-		this->initialize();
+		soft_reset();
+		initialize();
 		return true;
 	}
 
@@ -72,7 +64,14 @@ public:
 		touchEnable(true);
 	}
 
-	void read_touch(){
+	void soft_reset() {
+		digitalWrite(_rst, LOW);
+		delay(100); // Hold reset low for at least 40.96 usec 
+		digitalWrite(_rst, HIGH);
+		delay(1500); // At least 1ms for system stabilization
+	}
+
+	void read_touch() {
 		uint16_t tx,ty;
 		this->touchRead(&tx, &ty);
 		uint32_t tempx = (uint32_t) tx;
@@ -97,44 +96,6 @@ public:
 		for (int i = 1; i < columns; i += 1) {
 			drawLine(i*horizontal_scale,1,i*horizontal_scale,height-1,RA8875_LIGHTGREY);
 		}
-	}
-
-	/* /1* Override functions to compensate for clock speed of STM32F4 *1/ */
-	void writeData(uint8_t d) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_DATAWRITE);
-	  SPI->transfer(d);
-	  digitalWrite(_cs, HIGH);
-	}
-
-	uint8_t readData(void) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_DATAREAD);
-	  uint8_t x = SPI->transfer(0x0);
-	  digitalWrite(_cs, HIGH);
-	  return x;
-	}
-
-	void writeCommand(uint8_t d) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_CMDWRITE);
-	  SPI->transfer(d);
-	  digitalWrite(_cs, HIGH);
-	}
-	uint8_t readStatus(void) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_CMDREAD);
-	  uint8_t x = SPI->transfer(0x0);
-	  digitalWrite(_cs, HIGH);
-	  return x;
 	}
 
 };

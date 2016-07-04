@@ -27,6 +27,7 @@ ECGReadout ecg = ECGReadout(2,1,3,8,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&
 TextBox heartrate = TextBox(2,9,3,2,RA8875_BLACK,RA8875_WHITE,4,true,"60", &tft);
 
 Console c(USART2, 115200);
+
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
@@ -35,7 +36,6 @@ extern "C" void TIM3_IRQHandler(void) {
 		c.print("\n");
 	}
 }
-
 
 void MainScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
@@ -66,19 +66,20 @@ void systemInit() {
 int main(void)
 {
 	c.configure();
+	c.print("\n");
 	c.print("Starting FreePulse...\n");
   	layout currentMode = home;
 	systemInit();
 	c.print("Welcome!\n");
 	while (1) {
 		MainScreenInit();
-		delay(10);
+		delay(1000);
 		tft.read_touch();
 		tft.reset_touch();
 		while (currentMode == home) {
 			while (digitalRead(tft.interrupt)){
 				ecg.display_signal();
-				delay(1);
+				delay(100);
 			}
 			tft.read_touch();	
 			if (settings.isTapped()){
@@ -89,7 +90,7 @@ int main(void)
 		}
 		if (currentMode == alarms) {
 			SettingsScreenInit();
-			delay(10);
+			delay(1000);
 			tft.read_touch();
 			tft.reset_touch();
 			while (currentMode == alarms) {

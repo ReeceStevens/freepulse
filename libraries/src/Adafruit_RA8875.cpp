@@ -1211,6 +1211,7 @@ uint8_t  Adafruit_RA8875::readReg(uint8_t reg)
 /**************************************************************************/
 void  Adafruit_RA8875::writeData(uint8_t d) 
 {
+  while (!digitalRead(PC3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_DATAWRITE);
   SPI->transfer(d);
@@ -1224,6 +1225,7 @@ void  Adafruit_RA8875::writeData(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readData(void) 
 {
+  while (!digitalRead(PC3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_DATAREAD);
   uint8_t x = SPI->transfer(0x0);
@@ -1238,6 +1240,7 @@ uint8_t  Adafruit_RA8875::readData(void)
 /**************************************************************************/
 void  Adafruit_RA8875::writeCommand(uint8_t d) 
 {
+  while (!digitalRead(PC3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_CMDWRITE);
   SPI->transfer(d);
@@ -1250,7 +1253,8 @@ void  Adafruit_RA8875::writeCommand(uint8_t d)
 */
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readStatus(void) 
-{
+{ 
+  while (!digitalRead(PC3)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_CMDREAD);
   uint8_t x = SPI->transfer(0x0);
