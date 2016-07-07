@@ -73,8 +73,9 @@ private:
 
 public:
     bool visible;
+	bool outline;
 
-    TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, const char* str, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible) { };
+    TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, bool outline, const char* str, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible), outline(outline) { };
 
     void draw(void){
         tft->textMode();
@@ -83,7 +84,41 @@ public:
         tft->textEnlarge(1);
         tft->textWrite(str);
         tft->graphicsMode();
+		if (outline) {
+			tft->drawRect(coord_x, coord_y, real_width, real_len, text_color);
+		}
     }
+
+};
+
+
+/*
+ * Special note for LargeNumberView:
+ *
+ * Requires 3 grid spaces of width to properly display three digit numbers.
+ */
+class LargeNumberView : public ScreenElement {
+private:
+    int background_color;
+    int text_color;
+	int value;
+
+public:
+	bool visible;
+    LargeNumberView(int row, int column, int len, int width, int background_color, int text_color, bool visible, int value, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), value(value), visible(visible) { };
+
+	void draw(void) {
+		int first_digit = value / 100;
+		if (first_digit != 0) {
+			tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
+		}
+		int second_digit = value / 10 - first_digit * 10;
+		if (second_digit != 0) {
+			tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
+		}
+		int third_digit = value - first_digit * 100 - second_digit * 10;
+		tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
+	}
 
 };
 #endif

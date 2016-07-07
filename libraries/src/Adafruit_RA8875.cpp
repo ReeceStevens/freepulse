@@ -271,7 +271,7 @@ void Adafruit_RA8875::textMode(void)
 
   // Clear serial font ROM settings
   writeCommand(0x2F);
-  writeData(0x0);
+  writeData(0x00);
 }
 
 /**************************************************************************/

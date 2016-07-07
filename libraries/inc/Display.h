@@ -15,6 +15,112 @@
 #define RA8875_GREENYELLOW 0xAFE5      
 #define RA8875_LIGHTGREY   0xC618     
 
+
+/* 
+ * Large Font Bitmap Declarations
+ *
+ * Each digit is an 8x8 grid (zero padded by one on right and left).
+ */
+const uint8_t bigZero[8][8] =  { { 0, 0, 0, 1, 1, 0, 0, 0},
+								 { 0, 0, 1, 0, 0, 1, 0, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 0, 1, 0, 0, 1, 0, 0},
+								 { 0, 0, 0, 1, 1, 0, 0, 0}
+							   };
+
+const uint8_t bigOne[8][8] =  { { 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 1, 1, 0, 0, 0, 0},
+								{ 0, 1, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigTwo[8][8] =  { { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 1, 1, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 1, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 1, 0}
+							};
+
+const uint8_t bigThree[8][8] ={ { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 1, 1, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigFour[8][8] = { { 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 1, 1, 0, 0, 0},
+								{ 0, 0, 1, 0, 1, 0, 0, 0},
+								{ 0, 1, 0, 0, 1, 0, 0, 0},
+								{ 0, 1, 0, 0, 1, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0}
+							};
+
+const uint8_t bigFive[8][8] = { { 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigSix[8][8] =  { { 0, 0, 0, 1, 1, 1, 0, 0},
+								{ 0, 0, 1, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigSeven[8][8] = {{ 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0}
+							};
+
+const uint8_t bigEight[8][8] = {{ 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigNine[8][8] = { { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 1, 1, 1, 0, 0, 0}
+							};
+
 class Display: public Adafruit_RA8875 {
 private:
 	SPI_Interface* SPI;	
@@ -27,6 +133,25 @@ private:
 		soft_reset();
 		initialize();
 		return true;
+	}
+	
+	void printBigNumber(const uint8_t bitmap[8][8], int x, int y, uint16_t foreground, uint16_t background){
+		int cursor_x = x;
+		int cursor_y = y;
+		int xscale = horizontal_scale/8;
+		int yscale = vertical_scale/4;
+		for (int row = 0; row < 8; row ++) {
+			cursor_x = x;
+			for (int col = 0; col < 8; col ++) {
+				if (bitmap[row][col] == 1) {
+					fillRect(cursor_x, cursor_y, xscale, yscale, foreground);
+				} else {
+					fillRect(cursor_x, cursor_y, xscale, yscale, background);
+				}
+				cursor_x += xscale;
+			}
+			cursor_y += yscale;
+		}
 	}
 
 public:
@@ -95,6 +220,43 @@ public:
 		}
 		for (int i = 1; i < columns; i += 1) {
 			drawLine(i*horizontal_scale,1,i*horizontal_scale,height-1,RA8875_LIGHTGREY);
+		}
+	}
+
+	void printLarge(int num, int x, int y, uint16_t foreground, uint16_t background) {
+		switch(num) {
+			case 0:
+				printBigNumber(bigZero, x, y, foreground, background);
+				break;
+			case 1:
+				printBigNumber(bigOne, x, y, foreground, background);
+				break;
+			case 2:
+				printBigNumber(bigTwo, x, y, foreground, background);
+				break;
+			case 3:
+				printBigNumber(bigThree, x, y, foreground, background);
+				break;
+			case 4:
+				printBigNumber(bigFour, x, y, foreground, background);
+				break;
+			case 5:
+				printBigNumber(bigFive, x, y, foreground, background);
+				break;
+			case 6:
+				printBigNumber(bigSix, x, y, foreground, background);
+				break;
+			case 7:
+				printBigNumber(bigSeven, x, y, foreground, background);
+				break;
+			case 8:
+				printBigNumber(bigEight, x, y, foreground, background);
+				break;
+			case 9:
+				printBigNumber(bigNine, x, y, foreground, background);
+				break;
+			default:
+				return;
 		}
 	}
 
