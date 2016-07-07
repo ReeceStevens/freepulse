@@ -23,6 +23,52 @@ private:
 	int trace_color;
 	int background_color;
 	int sampling_rate;
+	double sos_filter[5][6] = {
+		{1, 2, 1, 1, -1.4818, 0.8316},
+		{1, 2, 1, 1, -1.2772, 0.5787},
+		{1, 2, 1, 1, -1.1430, 0.4128},
+		{1, 2, 1, 1, -1.0619, 0.3126},
+		{1, 2, 1, 1, -1.0237, 0.2654}
+	};
+
+	double gain[5] = {0.0875, 0.754, 0.0675, 0.0627, 0.0604};
+
+	double xs[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+	double ws[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+
+	double filter(int x) {
+		xs[0][0] = (double) x;
+		double y;
+		for (int i = 0; i < 5; i ++){
+			xs[i][0] *= gain[i];
+			// Apply SOS
+			ws[i][0] = xs[i][0] - sos_filter[i][4]*ws[i][1] - sos_filter[i][5]*ws[i][2];
+			y = sos_filter[i][0]*ws[i][0] + sos_filter[i][1]*ws[i][1] + sos_filter[i][2]*ws[i][2]; 
+			// Shift coefficients
+			xs[i][2] = xs[i][1];
+			xs[i][1] = xs[i][0];
+			ws[i][2] = ws[i][1];
+			ws[i][1] = ws[i][0];
+			// Carry over to next section
+			if (i != 4) {
+				xs[i+1][0] = y;	
+			}
+		}
+		return y/10 - 1500; 
+	}
+
 
 public:	
 	int last_val = 0;
@@ -53,7 +99,7 @@ public:
     }
 
 	int read(void) {
-		int ecg_data = analogRead(pn);
+		int ecg_data = filter(analogRead(pn));
 		fifo.add(ecg_data);
 		return ecg_data;
 	}

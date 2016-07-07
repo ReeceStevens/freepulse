@@ -9,32 +9,149 @@
 #ifndef __Display_h__
 #define __Display_h__ 
 
-#include <stdint.h>
-
 #include "SPI.h"
 #include "Adafruit_RA8875.h"
 
 #define RA8875_GREENYELLOW 0xAFE5      
 #define RA8875_LIGHTGREY   0xC618     
 
-#define RA8875_INT PC2
-#define RA8875_WAIT PC3
+
+/* 
+ * Large Font Bitmap Declarations
+ *
+ * Each digit is an 8x8 grid (zero padded by one on right and left).
+ */
+const uint8_t bigZero[8][8] =  { { 0, 0, 0, 1, 1, 0, 0, 0},
+								 { 0, 0, 1, 0, 0, 1, 0, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 1, 0, 0, 0, 0, 1, 0},
+								 { 0, 0, 1, 0, 0, 1, 0, 0},
+								 { 0, 0, 0, 1, 1, 0, 0, 0}
+							   };
+
+const uint8_t bigOne[8][8] =  { { 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 1, 1, 0, 0, 0, 0},
+								{ 0, 1, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigTwo[8][8] =  { { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 1, 1, 0, 0},
+								{ 0, 0, 0, 1, 0, 0, 0, 0},
+								{ 0, 0, 1, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 1, 0}
+							};
+
+const uint8_t bigThree[8][8] ={ { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 1, 1, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigFour[8][8] = { { 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 1, 1, 0, 0, 0},
+								{ 0, 0, 1, 0, 1, 0, 0, 0},
+								{ 0, 1, 0, 0, 1, 0, 0, 0},
+								{ 0, 1, 0, 0, 1, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0}
+							};
+
+const uint8_t bigFive[8][8] = { { 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigSix[8][8] =  { { 0, 0, 0, 1, 1, 1, 0, 0},
+								{ 0, 0, 1, 0, 0, 0, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 0, 0},
+								{ 0, 1, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigSeven[8][8] = {{ 0, 1, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0},
+								{ 0, 0, 0, 0, 1, 0, 0, 0}
+							};
+
+const uint8_t bigEight[8][8] = {{ 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 0, 0}
+							};
+
+const uint8_t bigNine[8][8] = { { 0, 0, 1, 1, 1, 1, 0, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 1, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 1, 1, 1, 1, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 0, 1, 0},
+								{ 0, 0, 0, 0, 0, 1, 0, 0},
+								{ 0, 0, 1, 1, 1, 0, 0, 0}
+							};
 
 class Display: public Adafruit_RA8875 {
 private:
 	SPI_Interface* SPI;	
 
 	/* Compatibility function overriding the Adafruit_RA8875::begin() call */
-	bool begin(__attribute__((unused))enum RA8875sizes s){
+	bool begin(__attribute__((unused))enum RA8875sizes s) {
 		_size = RA8875_800x480;
 		digitalWrite(_cs, HIGH);
 		SPI->begin();
-		digitalWrite(_rst, LOW);
-		delay(10);
-		digitalWrite(_rst, HIGH);
-		delay(10);
-		this->initialize();
+		soft_reset();
+		initialize();
 		return true;
+	}
+	
+	void printBigNumber(const uint8_t bitmap[8][8], int x, int y, uint16_t foreground, uint16_t background){
+		int cursor_x = x;
+		int cursor_y = y;
+		int xscale = horizontal_scale/8;
+		int yscale = vertical_scale/4;
+		for (int row = 0; row < 8; row ++) {
+			cursor_x = x;
+			for (int col = 0; col < 8; col ++) {
+				if (bitmap[row][col] == 1) {
+					fillRect(cursor_x, cursor_y, xscale, yscale, foreground);
+				} else {
+					fillRect(cursor_x, cursor_y, xscale, yscale, background);
+				}
+				cursor_x += xscale;
+			}
+			cursor_y += yscale;
+		}
 	}
 
 public:
@@ -72,7 +189,14 @@ public:
 		touchEnable(true);
 	}
 
-	void read_touch(){
+	void soft_reset() {
+		digitalWrite(_rst, LOW);
+		delay(100); // Hold reset low for at least 40.96 usec 
+		digitalWrite(_rst, HIGH);
+		delay(1500); // At least 1ms for system stabilization
+	}
+
+	void read_touch() {
 		uint16_t tx,ty;
 		this->touchRead(&tx, &ty);
 		uint32_t tempx = (uint32_t) tx;
@@ -99,42 +223,41 @@ public:
 		}
 	}
 
-	/* /1* Override functions to compensate for clock speed of STM32F4 *1/ */
-	void writeData(uint8_t d) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_DATAWRITE);
-	  SPI->transfer(d);
-	  digitalWrite(_cs, HIGH);
-	}
-
-	uint8_t readData(void) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_DATAREAD);
-	  uint8_t x = SPI->transfer(0x0);
-	  digitalWrite(_cs, HIGH);
-	  return x;
-	}
-
-	void writeCommand(uint8_t d) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_CMDWRITE);
-	  SPI->transfer(d);
-	  digitalWrite(_cs, HIGH);
-	}
-	uint8_t readStatus(void) 
-	{
-	  while (!digitalRead(this->wait)) {} // Wait until no longer busy
-	  digitalWrite(_cs, LOW);
-	  SPI->transfer(RA8875_CMDREAD);
-	  uint8_t x = SPI->transfer(0x0);
-	  digitalWrite(_cs, HIGH);
-	  return x;
+	void printLarge(int num, int x, int y, uint16_t foreground, uint16_t background) {
+		switch(num) {
+			case 0:
+				printBigNumber(bigZero, x, y, foreground, background);
+				break;
+			case 1:
+				printBigNumber(bigOne, x, y, foreground, background);
+				break;
+			case 2:
+				printBigNumber(bigTwo, x, y, foreground, background);
+				break;
+			case 3:
+				printBigNumber(bigThree, x, y, foreground, background);
+				break;
+			case 4:
+				printBigNumber(bigFour, x, y, foreground, background);
+				break;
+			case 5:
+				printBigNumber(bigFive, x, y, foreground, background);
+				break;
+			case 6:
+				printBigNumber(bigSix, x, y, foreground, background);
+				break;
+			case 7:
+				printBigNumber(bigSeven, x, y, foreground, background);
+				break;
+			case 8:
+				printBigNumber(bigEight, x, y, foreground, background);
+				break;
+			case 9:
+				printBigNumber(bigNine, x, y, foreground, background);
+				break;
+			default:
+				return;
+		}
 	}
 
 };

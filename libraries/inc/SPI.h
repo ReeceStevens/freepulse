@@ -10,6 +10,27 @@ enum SPI_Channel {
 };
 
 class SPI_Interface {
+private:
+	void configure(SPI_InitTypeDef* SPI_InitStruct){
+		/* SPI default settings: 
+		 * - Full duplex mode
+		 * - Communicate as master
+		 * - 8 bit wide communication
+		 * - SPI Mode 0
+		 * - Internal NSS management
+		 * - 12.5 MHz Baud Rate TODO: check this again
+		 * - MSB first
+		 */
+		SPI_InitStruct->SPI_Direction = SPI_Direction_2Lines_FullDuplex; 
+		SPI_InitStruct->SPI_Mode = SPI_Mode_Master;     
+		SPI_InitStruct->SPI_DataSize = SPI_DataSize_8b; 
+		SPI_InitStruct->SPI_CPOL = SPI_CPOL_Low;        
+		SPI_InitStruct->SPI_CPHA = SPI_CPHA_1Edge;      
+		SPI_InitStruct->SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; 
+		SPI_InitStruct->SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+		SPI_InitStruct->SPI_FirstBit = SPI_FirstBit_MSB;
+	};
+
 public:
 	SPI_Channel SPIc;
 	SPI_TypeDef* SPIx;
@@ -67,26 +88,6 @@ public:
 		configure(&SPI_InitStruct);
 		SPI_Init(this->SPIx, &SPI_InitStruct);
 		SPI_Cmd(this->SPIx, ENABLE);
-	};
-
-	void configure(SPI_InitTypeDef* SPI_InitStruct){
-		/* SPI default settings: 
-		 * - Full duplex mode
-		 * - Communicate as master
-		 * - 8 bit wide communication
-		 * - SPI Mode 0
-		 * - Internal NSS management
-		 * - 12.5 MHz Baud Rate TODO: check this again
-		 * - MSB first
-		 */
-		SPI_InitStruct->SPI_Direction = SPI_Direction_2Lines_FullDuplex; 
-		SPI_InitStruct->SPI_Mode = SPI_Mode_Master;     
-		SPI_InitStruct->SPI_DataSize = SPI_DataSize_8b; 
-		SPI_InitStruct->SPI_CPOL = SPI_CPOL_Low;        
-		SPI_InitStruct->SPI_CPHA = SPI_CPHA_1Edge;      
-		SPI_InitStruct->SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; 
-		SPI_InitStruct->SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
-		SPI_InitStruct->SPI_FirstBit = SPI_FirstBit_MSB;
 	};
 
 	uint8_t transfer(uint8_t data){

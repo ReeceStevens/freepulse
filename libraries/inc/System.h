@@ -372,16 +372,10 @@ static int analogRead(Pin_Num pn){
 	return ADC_GetConversionValue(ADC1); 
 }; 
 
-// A very rough delay function. Not highly accurate, but
-// we are only using it for stalling until a peripheral is 
-// initialized.
-static void delay(__IO long nCount)
+static void delay(__IO long usecs)
 {
-	volatile int delay_tally = nCount * 10000;
-	for (int i = 0; i < delay_tally; i ++) {}
-	/* nCount *= 100000; */
-    /* while(nCount--) */
-        /* __asm("nop"); // do nothing */
+	volatile int delay_tally = (int) (usecs * 3.125); // Constant determined experimentally
+	for (int i = 0; i < delay_tally; i ++) { __asm("nop"); }
 }
 
 enum TimerChannel {
