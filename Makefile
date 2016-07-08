@@ -38,14 +38,6 @@ SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
 SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f4xx.s
 
-# The header files we use are located here
-# INC_DIRS  = $(STM_DIR)/Utilities/STM32F4-Discovery
-# INC_DIRS  = $(STM_DIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
-# # /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS/CMSIS/Include
-# INC_DIRS += $(STM_DIR)/Libraries/CMSIS/Include
-# INC_DIRS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Include
-# INC_DIRS += $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
-
 INC_DIRS  = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/inc
 INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/Include
 INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Include
@@ -60,18 +52,6 @@ TEST_DIRS  = $(INC_DIRS)
 TEST_DIRS += $(GTEST_ROOT)/include
 TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
 TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
-
-DEPS  = stm32f4xx.h
-DEPS += stm32f4xx_rcc.h
-DEPS += stm32f4xx_gpio.h
-DEPS += stm32f4xx_spi.h
-DEPS += Adafruit_RA8875.h
-DEPS += Adafruit_GFX.h
-DEPS += WString.h
-DEPS += gfxfont.h
-DEPS += pgmspace.h
-
-# OBJS = $(SRCS:.c=.o)
 
 ######################################################################
 #                         SETUP TOOLS                                #
@@ -90,11 +70,6 @@ TESTINCS = $(addprefix -I,$(TEST_DIRS))
 # #defines needed when working with the STM library
 DEFS    = -DUSE_STDPERIPH_DRIVER -DSTM32F411xE 
 
-# if you use the following option, you must implement the function 
-#    assert_failed(uint8_t* file, uint32_t line)
-# because it is conditionally used in the library
-# DEFS   += -DUSE_FULL_ASSERT
-
 ## Compiler options
 CFLAGS  = -ggdb
 CFLAGS += -O0 
@@ -107,14 +82,6 @@ CFLAGS += -felide-constructors -std=c++0x
 LD_DIR = ./linker
 LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 
-# OBJS   = main.o
-# OBJS  += Adafruit_GFX.o
-# OBJS  += Adafruit_GFX.o
-# OBJS  += system_stm32f4xx.o
-# OBJS  += stm32f4xx_rcc.o 
-# OBJS  += stm32f4xx_gpio.o
-# OBJS  += stm32f4xx_spi.o
-
 ######################################################################
 #                         SETUP TARGETS                              #
 ######################################################################
@@ -122,7 +89,7 @@ LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 .PHONY: $(PROJ_NAME)
 $(PROJ_NAME): $(PROJ_NAME).elf
 
-%.o: %.c $(DEPS)
+%.o: %.c 
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(PROJ_NAME).elf: $(SRCS)
