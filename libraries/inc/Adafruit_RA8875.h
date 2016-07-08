@@ -348,4 +348,22 @@ class Adafruit_RA8875 : public Adafruit_GFX {
 #define RA8875_INTC2_TP         0x04
 #define RA8875_INTC2_BTE        0x02
 
+#define RA8875_BECR0			0x50
+#define RA8875_BECR1			0x51
+
+#define RA8875_HSBE0			0x54
+#define RA8875_HSBE1			0x55
+#define RA8875_VSBE0			0x56
+#define RA8875_VSBE1			0x57
+
+#define RA8875_HDBE0			0x58
+#define RA8875_HDBE1			0x59
+#define RA8875_VDBE0			0x5A
+#define RA8875_VDBE1			0x5B
+
+#define RA8875_BEWR0			0x5C
+#define RA8875_BEWR1			0x5D
+#define RA8875_BEHR0			0x5E
+#define RA8875_BEHR1			0x5F
+
 #endif
