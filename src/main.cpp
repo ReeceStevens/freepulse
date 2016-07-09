@@ -66,7 +66,6 @@ void systemInit() {
 	adcInit();
   	tft.startup();
 	ecg.enable();
-	nibp.enable();
 }
 
 int main(void)
