@@ -23,6 +23,7 @@ private:
 	int trace_color;
 	int background_color;
 	int sampling_rate;
+	TimerChannel timx;
 	double sos_filter[5][6] = {
 		{1, 2, 1, 1, -1.4818, 0.8316},
 		{1, 2, 1, 1, -1.2772, 0.5787},
@@ -76,7 +77,7 @@ public:
     ECGReadout(int row, int column, int len, int width, Pin_Num pn, 
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
-			   	background_color(background_color) {
+			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
 		fifo_size = real_width;
 		fifo = CircleBuffer<int>(fifo_size);
 		avg_size = 10;
@@ -85,6 +86,9 @@ public:
 		avg_queue = Vector<int>(avg_size);
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
+	}
+
+	void enable() {
 		Sampler sampler(sampling_rate, timx);
 		sampler.enable();
 	}

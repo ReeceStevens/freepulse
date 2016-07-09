@@ -16,6 +16,8 @@ Display tft(DISPLAY_CS, DISPLAY_RESET, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS
 
 int currentMode = 0; // Change mode
 
+Console c(USART2, 115200);
+
 /* Build UI Buttons */
 Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
 Button record = Button(5,9,2,2,RA8875_BLUE,"Data to Serial",true,&tft);
@@ -63,6 +65,8 @@ enum layout{
 void systemInit() {
 	adcInit();
   	tft.startup();
+	ecg.enable();
+	nibp.enable();
 }
 
 int main(void)
