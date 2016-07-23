@@ -63,6 +63,9 @@ private:
     SPI_Interface* SPI;
 
 public:
+   
+    // TODO: Still need to add the CS pin!
+    PulseOx(SPI_Interface* SPI): SPI(SPI) {}
 
     /*
      * writeData() - Put 24-bit data into a target register
