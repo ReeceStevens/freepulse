@@ -24,26 +24,20 @@ private:
 	int background_color;
 	int sampling_rate;
 	TimerChannel timx;
-	double sos_filter[5][6] = {
-		{1, 2, 1, 1, -1.4818, 0.8316},
-		{1, 2, 1, 1, -1.2772, 0.5787},
-		{1, 2, 1, 1, -1.1430, 0.4128},
-		{1, 2, 1, 1, -1.0619, 0.3126},
-		{1, 2, 1, 1, -1.0237, 0.2654}
+	double sos_filter[3][6] = {
+		{1, 2, 1, 1, -1.6696, 0.7957},
+		{1, 2, 1, 1, -1.4328, 0.5410},
+		{1, 1, 0, 1, -0.6796, 0.0}
 	};
 
-	double gain[5] = {0.0875, 0.754, 0.0675, 0.0627, 0.0604};
+	double gain[3] = {0.0315, 0.0271, 0.1602};
 
-	double xs[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
+	double xs[3][3] = {
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0}
 	};
-	double ws[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
+	double ws[3][3] = {
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0}
@@ -52,7 +46,7 @@ private:
 	double filter(int x) {
 		xs[0][0] = (double) x;
 		double y;
-		for (int i = 0; i < 5; i ++){
+		for (int i = 0; i < 3; i ++){
 			xs[i][0] *= gain[i];
 			// Apply SOS
 			ws[i][0] = xs[i][0] - sos_filter[i][4]*ws[i][1] - sos_filter[i][5]*ws[i][2];
@@ -63,11 +57,11 @@ private:
 			ws[i][2] = ws[i][1];
 			ws[i][1] = ws[i][0];
 			// Carry over to next section
-			if (i != 4) {
+			if (i != 2) {
 				xs[i+1][0] = y;	
 			}
 		}
-		return y/10; 
+		return y; 
 	}
 
 
@@ -108,6 +102,12 @@ public:
 		return nibp_data;
 	}
 
+    int scale(int raw_signal) {
+        raw_signal -= 1040;
+        double scale_factor = ((double) real_len) / 300.0;
+        return (int) (raw_signal*scale_factor);
+    }
+
 	void display_signal(void) {
 		uint32_t prim = __get_PRIMASK();
 		__disable_irq();
@@ -116,8 +116,7 @@ public:
 			__enable_irq();
 		}
 		int threshold = 5;
-		int display = new_val * real_len;
-		display /= 4096;
+        int display = scale(new_val);
 		if (display > real_len) { display = real_len; }
 		else if (display < 0) { display = 0; }
 		int old_display = last_val * real_len;
