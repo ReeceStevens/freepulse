@@ -10,6 +10,10 @@
 #include "misc.h"
 #include "Vector.h"
 
+enum NIBPState {
+    inflate, sensing, done, off
+};
+
 class NIBPReadout : public ScreenElement {
 private:
 	int fifo_size;
@@ -26,6 +30,7 @@ private:
 	int background_color;
 	int sampling_rate;
 	TimerChannel timx;
+    NIBPState state = off;
 
 
 
@@ -157,6 +162,14 @@ public:
 	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
     }
 
+    NIBPState getState(void) {
+        return this->state;
+    }
+
+    void setState(NIBPState state) {
+        this->state = state;
+    }
+
     void draw(void){
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
 		draw_border();
@@ -175,6 +188,35 @@ public:
         raw_signal -= 1040;
         double scale_factor = ((double) real_len) / 300.0;
         return (int) (raw_signal*scale_factor);
+    }
+    
+    int getRecentAvg(int length) {
+		uint32_t prim = __get_PRIMASK();
+        int sum = 0;
+		__disable_irq();
+        for (int i = 0; i < length; i ++) {
+            sum += pressure_fifo[i]; 
+        }
+		if (!prim) { 
+			__enable_irq();
+		}
+        return sum / length;
+    }
+
+    void updateInstructions(void) {
+        switch(this->state) {
+            case off:
+               break;
+            case inflate:
+                int avg_pressure = getRecentAvg(5);
+                if (avg_pressure < 150) {
+                    //TODO: add NIBP logic
+                    /* changeTitle("Start inflating the cuff.", RA8875_GREEN); */ 
+                } else {
+                    /* changeTitle("Stop!", RA8875_RED); */
+                }
+
+        }
     }
 
     /*

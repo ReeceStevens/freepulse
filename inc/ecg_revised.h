@@ -79,11 +79,11 @@ public:
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
 		fifo_size = real_width;
-		fifo = CircleBuffer<int>(fifo_size);
+        fifo.resize(fifo_size);
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
-		avg_queue = Vector<int>(avg_size);
+        avg_queue.resize(avg_size);
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
 	}

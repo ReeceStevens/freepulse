@@ -44,13 +44,16 @@ public:
     void draw(void){
 	    tft->fillRect(coord_x,coord_y,real_width,real_len,color);
         tft->textMode();
-        tft->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
+        tft->textSetCursor(coord_x + (real_width/6), coord_y + (real_len/2)-5);
         tft->textColor(RA8875_BLACK, color);
         tft->textEnlarge(0);
         tft->textWrite(button_str);
         tft->graphicsMode();
     }
-
+    
+    void setText(const char* new_text) {
+        this->button_str = new_text;
+    }
 
     bool isTapped(){
 		uint16_t x = tft->touch_points[0];
