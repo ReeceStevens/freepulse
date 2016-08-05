@@ -33,6 +33,17 @@ public:
 		end = 1;
 	};
 
+    void resize(int new_len) {
+        if (new_len <= this->length) { return; }
+        T* new_data = new T[new_len];
+		for (int i = 0; i < length; i ++) {
+		    new_data[i] = data[i];
+		}
+        length = new_len;
+        delete [] data;
+        data = new_data;
+    }
+
 	void add(const T& payload) {
 		data[next] = payload;
 		next = end;
