@@ -2,7 +2,8 @@
 #include "Display.h"
 
 #include "interface.h"
-#include "ecg_revised.h"
+#include "ecg.h"
+#include "nibp.h"
 
 #define DISPLAY_CS PC4
 #define DISPLAY_RESET PC5
