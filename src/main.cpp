@@ -2,7 +2,7 @@
 #include "Display.h"
 
 #include "interface.h"
-#include "ecg_revised.h"
+#include "ecg.h"
 #include "nibp.h"
 
 #define DISPLAY_CS PC4
@@ -76,7 +76,6 @@ void systemInit() {
 	adcInit();
   	tft.startup();
 	ecg.enable();
-	nibp.enable();
 }
 
 int main(void)
