@@ -6,7 +6,7 @@
 
 class Screen {
 private:
-    Vector<ScreenElement> elements;
+    Vector<ScreenElement*> elements;
     uint16_t background_color = RA8875_BLACK;
 
 public:
@@ -15,19 +15,19 @@ public:
 
     Screen(uint16_t background_color) : background_color(background_color){}
 
-    void add(const ScreenElement& e) {
+    void add(ScreenElement* e) {
         this->elements.push_back(e);
     }
 
     void initialDraw() {
         for (int i = 0; i < elements.size(); i ++) {
-            elements[i].draw();    
+            elements[i]->draw();
         }
     }
 
     void update() {
         for (int i = 0; i < elements.size(); i ++) {
-            elements[i].update();    
+            elements[i]->update();
         }
     }
 };

@@ -1,6 +1,7 @@
 #include "System.h"
 #include "Display.h"
 
+#include "screen.h"
 #include "interface.h"
 #include "ecg.h"
 
@@ -19,6 +20,7 @@ int currentMode = 0; // Change mode
 Console c(USART2, 115200);
 
 /* Build UI Buttons */
+Screen mainScreen = Screen();
 Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
 Button record = Button(5,9,2,2,RA8875_BLUE,"Data to Serial",true,&tft);
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
@@ -39,14 +41,23 @@ extern "C" void TIM3_IRQHandler(void) {
 	}
 }
 
+void composeInterface(void) {
+    mainScreen.add(&settings);
+    mainScreen.add(&title);
+    mainScreen.add(&hr_label);
+    mainScreen.add(&heartrate);
+    mainScreen.add(ecg.signalTrace);
+}
+
 void MainScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
   tft.showGrid();
-  title.draw();
-  settings.draw();
-  ecg.draw();
-  heartrate.draw();
-  hr_label.draw();
+  mainScreen.initialDraw();
+  /* title.draw(); */
+  /* settings.draw(); */
+  /* ecg.draw(); */
+  /* heartrate.draw(); */
+  /* hr_label.draw(); */
 }
 
 void SettingsScreenInit(void){
@@ -64,6 +75,7 @@ enum layout{
 void systemInit() {
 	adcInit();
   	tft.startup();
+    composeInterface();
 	ecg.enable();
 }
 
@@ -82,7 +94,8 @@ int main(void)
 		tft.reset_touch();
 		while (currentMode == home) {
 			while (digitalRead(tft.interrupt)){
-				ecg.display_signal();
+				/* ecg.display_signal(); */
+                mainScreen.update();
 				delay(100);
 			}
 			tft.read_touch();	
