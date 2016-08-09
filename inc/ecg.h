@@ -82,8 +82,9 @@ public:
         fifo.resize(fifo_size);
 		avg_size = 10;
 		avg_cursor = 0;
-		display_cursor = 0;
+		display_cursor = 1;
         avg_queue.resize(avg_size);
+        real_len -= 1; // So that boxes don't overwrite each other's outlines.
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
 	}
@@ -124,14 +125,14 @@ public:
 		old_display /= 4096;
 		if (old_display > real_len) { old_display = real_len; }
 		else if (old_display < 0) { old_display = 0; }
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
+		tft->drawFastVLine(coord_x + display_cursor, coord_y+1, real_len-2, background_color);
 		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
 			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
 		} else {
 			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
 		}
-		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
+		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width-2) + 1; // Advance display cursor
+		tft->drawFastVLine(coord_x + display_cursor, coord_y+1, real_len-2, RA8875_WHITE); // Draw display cursor
 		last_val = new_val;
 	}
 

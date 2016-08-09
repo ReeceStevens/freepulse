@@ -96,7 +96,7 @@ int main(void)
 				ecg.display_signal();
 				/* nibp.display_signal(); */
                 nibp.updateInstructions();
-				delay(100);
+				delay(5000);
 			}
 			tft.read_touch();	
 			if (settings.isTapped()){
