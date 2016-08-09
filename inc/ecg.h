@@ -6,11 +6,11 @@
 #include <math.h>
 #include "System.h"
 #include "CircleBuffer.h"
-#include "interface.h"
+#include "ScreenElement.h"
 #include "misc.h"
 #include "Vector.h"
 
-class ECGReadout : public ScreenElement {
+class ECG : public ScreenElement {
 private:
 	int fifo_size;
 	int display_cursor;
@@ -72,7 +72,7 @@ public:
 	int last_val = 0;
     SignalTrace* signalTrace;
 
-    ECGReadout(int row, int column, int len, int width, Pin_Num pn, int max_signal_value,
+    ECG(int row, int column, int len, int width, Pin_Num pn, int max_signal_value,
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {

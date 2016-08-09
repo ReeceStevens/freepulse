@@ -1,8 +1,8 @@
-#ifndef __screen_h__
-#define __screen_h__
+#ifndef __Screen.h__
+#define __Screen.h__
 
 #include "Vector.h"
-#include "interface.h"
+#include "ScreenElement.h"
 
 class Screen {
 private:
