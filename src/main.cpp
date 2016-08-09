@@ -3,7 +3,6 @@
 
 #include "interface.h"
 #include "ecg.h"
-#include "nibp.h"
 
 #define DISPLAY_CS PC4
 #define DISPLAY_RESET PC5
@@ -29,8 +28,6 @@ ECGReadout ecg = ECGReadout(2,1,3,7,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&
 TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,false,"FreePulse Patient Monitor v0.9", &tft);
 TextBox hr_label = TextBox(2,8,3,3,RA8875_BLACK,RA8875_BLUE,2,true,true,"BPM", &tft);
 LargeNumberView heartrate = LargeNumberView(3,8,2,3,RA8875_BLACK,RA8875_BLUE,true,60,&tft);
-
-Console c(USART2, 115200);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
