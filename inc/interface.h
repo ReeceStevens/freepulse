@@ -19,6 +19,8 @@ public:
     int real_width;
     Display* tft;
 
+    ScreenElement() {}
+
     ScreenElement(int row, int column, int len, int width, Display* tft):
 		row(row),column(column),len(len),width(width),tft(tft){
         coord_x = tft->horizontal_scale*(column-1);
@@ -128,16 +130,50 @@ public:
 
 class SignalTrace : public ScreenElement {
 private:
-    CircleBuffer<int>* displayData = NULL;
+    CircleBuffer<int>* displayData;
     int background_color;
+    int trace_color;
+    int display_cursor = 0;
+    int last_val;
+    int max_signal_value = 4096;
 
 public:
-    SignalTrace(int row, int column, int len, int width, int background_color, CircleBuffer<int>* displayData, Display* tft):
-        ScreenElement(row,column,len,width,tft), background_color(background_color), displayData(displayData) {}
+    SignalTrace(int row, int column, int len, int width, int background_color, int trace_color, 
+                int max_signal_value, CircleBuffer<int>* displayData, Display* tft):
+                ScreenElement(row,column,len,width,tft), displayData(displayData), background_color(background_color), 
+                trace_color(trace_color), max_signal_value(max_signal_value) {}
         
-    void draw(void) {}
+    void draw(void) {
+        tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
+	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
+    }
 
-    void update(void) {}
+    void update(void) {
+		uint32_t prim = __get_PRIMASK();
+		__disable_irq();
+		int new_val = displayData->newest();
+		if (!prim) { 
+			__enable_irq();
+		}
+		int threshold = 5;
+		int display = new_val * real_len;
+		display /= max_signal_value;
+		if (display > real_len) { display = real_len; }
+		else if (display < 0) { display = 0; }
+		int old_display = last_val * real_len;
+		old_display /= max_signal_value;
+		if (old_display > real_len) { old_display = real_len; }
+		else if (old_display < 0) { old_display = 0; }
+		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
+		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
+			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
+		} else {
+			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
+		}
+		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
+		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
+		last_val = new_val;
+    }
 
 };
 

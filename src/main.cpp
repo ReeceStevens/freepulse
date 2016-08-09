@@ -24,10 +24,11 @@ Button record = Button(5,9,2,2,RA8875_BLUE,"Data to Serial",true,&tft);
 Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
 Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
 Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",true,&tft);
-ECGReadout ecg = ECGReadout(2,1,3,7,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&tft);
 TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,false,"FreePulse Patient Monitor v0.9", &tft);
 TextBox hr_label = TextBox(2,8,3,3,RA8875_BLACK,RA8875_BLUE,2,true,true,"BPM", &tft);
 LargeNumberView heartrate = LargeNumberView(3,8,2,3,RA8875_BLACK,RA8875_BLUE,true,60,&tft);
+
+ECGReadout ecg = ECGReadout(2,1,3,7,PB0,4096,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
