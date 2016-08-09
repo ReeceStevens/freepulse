@@ -3,6 +3,7 @@
 
 #include "System.h"
 #include "Display.h"
+#include "CircleBuffer.h"
 
 class ScreenElement {
 private:
@@ -25,6 +26,9 @@ public:
         real_len = tft->vertical_scale*len;
         real_width = tft->horizontal_scale*width;
     }
+
+    virtual void draw(void){};
+    virtual void update(void){};
 };
 
 class Button : public ScreenElement{
@@ -121,4 +125,20 @@ public:
 	}
 
 };
+
+class SignalTrace : public ScreenElement {
+private:
+    CircleBuffer<int>* displayData = NULL;
+    int background_color;
+
+public:
+    SignalTrace(int row, int column, int len, int width, int background_color, CircleBuffer<int>* displayData, Display* tft):
+        ScreenElement(row,column,len,width,tft), background_color(background_color), displayData(displayData) {}
+        
+    void draw(void) {}
+
+    void update(void) {}
+
+};
+
 #endif

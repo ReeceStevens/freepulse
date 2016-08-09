@@ -77,6 +77,17 @@ public:
         delete [] data;
     }
 
+    void resize(int new_len) {
+        if (new_len <= this->capacity) { return; }
+        T* new_data = new T[new_len];
+		for (int i = 0; i < this->length; i ++) {
+		    new_data[i] = data[i];
+		}
+        this->capacity = new_len;
+        delete [] this->data;
+        this->data = new_data;
+    }
+
 	uint32_t size(void) {
         return length;
     }

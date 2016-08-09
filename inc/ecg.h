@@ -83,7 +83,7 @@ public:
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
-		avg_queue = Vector<int>(avg_size);
+        avg_queue.resize(avg_size);
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
 	}
