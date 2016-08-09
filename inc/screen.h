@@ -30,6 +30,17 @@ public:
             elements[i]->update();
         }
     }
+
+    void performOnClick() {
+        for (int i = 0; i < elements.size(); i ++) {
+            if (isButton(elements[i])) {
+                Button* b = dynamic_cast<Button*> (elements[i]);
+                if (b->isTapped()) {
+                    b->onClick(); //TODO: Implement this.
+                }
+            }
+        }
+    }
 };
 
 
