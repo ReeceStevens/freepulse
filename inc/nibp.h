@@ -29,6 +29,8 @@ private:
 	int trace_color;
 	int background_color;
 	int sampling_rate;
+    const char* title = "";
+    const char* body_text = "";
 	TimerChannel timx;
     NIBPState state = off;
 
@@ -204,19 +206,31 @@ public:
         return sum / length;
     }
 
+    void changeTitle(const char* new_title) {
+        this->title = new_title;
+    }
+
+    // TODO: Figure out the compiler error here.
     void updateInstructions(void) {
         switch(this->state) {
             case off:
                break;
+            case done:
+                break;
+            case sensing:
+                break;
             case inflate:
                 int avg_pressure = getRecentAvg(5);
                 if (avg_pressure < 150) {
                     //TODO: add NIBP logic
-                    /* changeTitle("Start inflating the cuff.", RA8875_GREEN); */ 
+                    changeTitle("Start inflating the cuff."); 
                 } else {
                     /* changeTitle("Stop!", RA8875_RED); */
+                    delay(1);
                 }
-
+                break;
+            default:
+                break;
         }
     }
 
