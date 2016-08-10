@@ -1,5 +1,5 @@
-#ifndef __Screen.h__
-#define __Screen.h__
+#ifndef __Screen_h__
+#define __Screen_h__
 
 #include "Vector.h"
 #include "ScreenElement.h"
@@ -7,6 +7,7 @@
 class Screen {
 private:
     Vector<ScreenElement*> elements;
+    Vector<Button*> buttons;
     uint16_t background_color = RA8875_BLACK;
 
 public:
@@ -19,28 +20,35 @@ public:
         this->elements.push_back(e);
     }
 
+    void add(Button* e) {
+        this->buttons.push_back(e);
+    }
+
     void initialDraw() {
-        for (int i = 0; i < elements.size(); i ++) {
+        for (int i = 0; i < elements.size(); i++) {
             elements[i]->draw();
+        }
+        for (int i = 0; i < buttons.size(); i++) {
+            buttons[i]->draw();
         }
     }
 
+    /*
+     * Note: Buttons all have noop update functions, so
+     * we will skip them (for now).
+     */
     void update() {
-        for (int i = 0; i < elements.size(); i ++) {
+        for (int i = 0; i < elements.size(); i++) {
             elements[i]->update();
         }
     }
 
-    void performOnClick() {
-        for (int i = 0; i < elements.size(); i ++) {
-            if (isButton(elements[i])) {
-                Button* b = dynamic_cast<Button*> (elements[i]);
-                if (b->isTapped()) {
-                    b->onClick(); //TODO: Implement this.
-                }
-            }
+    void listenForTouch() {
+        for (int i = 0; i < buttons.size(); i++) {
+            buttons[i]->updateIfTapped();
         }
     }
+
 };
 
 

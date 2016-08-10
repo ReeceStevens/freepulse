@@ -1,10 +1,12 @@
 #include "System.h"
 #include "Display.h"
 
-#include "Interface.h"
+#include "interface.h"
 #include "Signals.h"
 
 Console c(USART2, 115200);
+Screen mainScreen = Screen();
+Screen settingsScreen = Screen();
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
@@ -24,21 +26,17 @@ void MainScreenInit(void){
 void SettingsScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
   tft.showGrid();
-  confirm_button.draw();
-  default_button.draw();
-  cancel_button.draw();
+  settingsScreen.initialDraw();
 }
 
-enum layout{
-	home, alarms	
-};
 
 void systemInit() {
 	adcInit();
   	tft.startup();
-    composeInterface();
-    connectSignalsToInterface();
-    enableSignalADCs();
+    composeMainScreen(mainScreen);
+    composeSettingsScreen(settingsScreen);
+    connectSignalsToScreen(mainScreen);
+    enableSignalAcquisition();
 }
 
 int main(void)
@@ -46,7 +44,6 @@ int main(void)
 	c.configure();
 	c.print("\n");
 	c.print("Starting FreePulse...\n");
-  	layout currentMode = home;
 	systemInit();
 	c.print("Welcome!\n");
 	while (1) {
@@ -60,25 +57,19 @@ int main(void)
 				delay(100);
 			}
 			tft.read_touch();	
-			if (settings.isTapped()){
-				tft.fillScreen(RA8875_BLACK);
-				currentMode = alarms;
-			}
+            mainScreen.listenForTouch();
 			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
-		if (currentMode == alarms) {
+		if (currentMode == settings) {
 			SettingsScreenInit();
 			delay(1000);
 			tft.read_touch();
 			tft.reset_touch();
-			while (currentMode == alarms) {
+			while (currentMode == settings) {
 				while (digitalRead(tft.interrupt)){}
 				tft.read_touch();
+                settingsScreen.listenForTouch();
 				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
-				if (cancel_button.isTapped()) {
-					tft.fillScreen(RA8875_BLACK);
-					currentMode = home;
-				}
 			}
 		}
     }

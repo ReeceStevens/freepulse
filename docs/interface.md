@@ -9,9 +9,6 @@ Screen (top level)
     |   |__ Screen Element
     |   |__ Screen Element
     |__ Button
-        |__ -> Action
-                |__ Type
-                |__ Value
 ```
 
 ## `Screen` 
@@ -34,8 +31,9 @@ The primary methods of `Screen` are:
 4. `listenForTouch()`
 
     Checks each `Button` object to see if one has been touched via the 
-    `Button::isTapped()` method. If a button has been tapped, returns an action
-    object.
+    `Button::updateIfTapped()` method. If a button has been tapped, 
+    it will call its `reducer` function before returning, propogating its
+    change to the global state.
 
 ## `ScreenElement`
 `ScreenElement` is the generic class that describes any element that can be 
@@ -55,24 +53,3 @@ class of `ScreenElement` defines `draw` and `update` as necessary.
 - TextBox
 - LargeNumberView
 - SignalTrace
-
-## `Action`
-An `Action` object has two attributes: `type` and `value`. The different types of 
-actions include:
-
-- ScreenChange
-
-    Changes the screen currently being displayed to the one indicated by the action
-    value.
-
-- IncrementCounter
-
-    Increments the counter pointed to by the action value.
-
-- DecrementCounter
-
-    Decrements the counter pointed to by the action value.
-
-This list may grow and evolve during development.
-
-All `Action` objects are reduced to a global state change via the reducing function in `main.cpp`.

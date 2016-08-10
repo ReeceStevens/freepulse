@@ -5,6 +5,7 @@
 #include "Display.h"
 #include "CircleBuffer.h"
 
+
 class ScreenElement {
 private:
     int row;
@@ -41,9 +42,10 @@ private:
 public:
     bool visible;
     bool lastTapped;
+    void (*reducer) (void);
 
-    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Display* tft):
-		ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
+    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Display* tft, void (*reducer) (void)):
+		ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible),reducer(reducer){ 
         lastTapped = 0;
     };
 
@@ -58,11 +60,12 @@ public:
     }
 
 
-    bool isTapped(){
+    bool updateIfTapped(){
 		uint16_t x = tft->touch_points[0];
 		uint16_t y = tft->touch_points[1];
 	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
 		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
+                    reducer();
 				    return true;
 		    }
 	    }
