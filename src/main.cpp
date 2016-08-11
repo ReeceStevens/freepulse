@@ -12,8 +12,8 @@ extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 		int val = ecg.read();
-		c.print(val);
-		c.print("\n");
+		/* c.print(val); */
+		/* c.print("\n"); */
 	}
 }
 
@@ -54,9 +54,15 @@ int main(void)
 		while (currentMode == home) {
 			while (digitalRead(tft.interrupt)){
                 mainScreen.update();
-				delay(100);
+				delay(1000);
 			}
-			tft.read_touch();	
+            delay(1000);
+			tft.read_touch();
+            c.print("x: ");
+            c.print(tft.touch_points[0]);
+            c.print(", y: ");
+            c.print(tft.touch_points[1]);
+            c.print("\n");
             mainScreen.listenForTouch();
 			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
