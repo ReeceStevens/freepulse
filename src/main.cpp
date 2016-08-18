@@ -1,7 +1,7 @@
 #include "System.h"
 #include "Display.h"
 
-#include "interface.h"
+#include "Interface.h"
 #include "Signals.h"
 
 const int SHORT_DELAY = 1000;
