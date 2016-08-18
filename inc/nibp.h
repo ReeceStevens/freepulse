@@ -143,13 +143,13 @@ public:
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), 
                 trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
+        
 		fifo_size = real_width;
         pressure_fifo.resize(fifo_size);
         pulse_fifo.resize(fifo_size);
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
-		/* avg_queue = Vector<int>(avg_size); */
         avg_queue.resize(avg_size);
 		scaling_factor = real_len;
 		configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
