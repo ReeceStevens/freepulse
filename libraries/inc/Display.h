@@ -214,6 +214,11 @@ public:
 		this->touch_points[1] = 0;
 	}
 
+    void clearTouchEvents() {
+        read_touch();
+        reset_touch();
+    }
+
 	void showGrid(void){
 		for (int i = 1; i < rows; i += 1) {
 			drawLine(1,i*vertical_scale,width-1,i*vertical_scale,RA8875_LIGHTGREY);

@@ -42,7 +42,7 @@ public:
         length = new_len;
         delete [] data;
         data = new_data;
-    }
+    };
 
 	void add(const T& payload) {
 		data[next] = payload;
@@ -53,7 +53,7 @@ public:
 	T& operator[](const int k) {
 		if (length <= k) {
           __attribute__((unused)) int* p = 0;
-          p = (int*) 1; // Intentionally crash.
+            p = (int*) 1; // TODO: more graceful way to handle this case?
 		}	
 		return data[mod(next-k-1, length)];
 	};
