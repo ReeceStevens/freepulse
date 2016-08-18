@@ -4,16 +4,20 @@
 #include "interface.h"
 #include "Signals.h"
 
+const int SHORT_DELAY = 1000;
+
+extern Display tft;
+
 Console c(USART2, 115200);
-Screen mainScreen = Screen();
-Screen settingsScreen = Screen();
+Screen mainScreen = Screen(&tft);
+Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 		int val = ecg.read();
-		/* c.print(val); */
-		/* c.print("\n"); */
+		c.print(val);
+		c.print("\n");
 	}
 }
 
@@ -28,7 +32,6 @@ void SettingsScreenInit(void){
   tft.showGrid();
   settingsScreen.initialDraw();
 }
-
 
 void systemInit() {
 	adcInit();
@@ -48,33 +51,20 @@ int main(void)
 	c.print("Welcome!\n");
 	while (1) {
 		MainScreenInit();
-		delay(1000);
-		tft.read_touch();
-		tft.reset_touch();
+		delay(SHORT_DELAY);
+        tft.clearTouchEvents();
 		while (currentMode == home) {
-			while (digitalRead(tft.interrupt)){
-                mainScreen.update();
-				delay(1000);
-			}
-            delay(1000);
-			tft.read_touch();
-            c.print("x: ");
-            c.print(tft.touch_points[0]);
-            c.print(", y: ");
-            c.print(tft.touch_points[1]);
-            c.print("\n");
-            mainScreen.listenForTouch();
+            mainScreen.update(SHORT_DELAY);
+            mainScreen.propogateTouch();
 			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
 		if (currentMode == settings) {
 			SettingsScreenInit();
-			delay(1000);
-			tft.read_touch();
-			tft.reset_touch();
+			delay(SHORT_DELAY);
+            tft.clearTouchEvents();
 			while (currentMode == settings) {
-				while (digitalRead(tft.interrupt)){}
-				tft.read_touch();
-                settingsScreen.listenForTouch();
+                settingsScreen.update(SHORT_DELAY);
+                settingsScreen.propogateTouch();
 				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 			}
 		}

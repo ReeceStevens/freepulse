@@ -28,7 +28,7 @@ The primary methods of `Screen` are:
     Redraws any `ScreenElement` objects that have dynamically changing data 
     by calling the `update` method on each element.
 
-4. `listenForTouch()`
+4. `propogateTouch()`
 
     Checks each `Button` object to see if one has been touched via the 
     `Button::updateIfTapped()` method. If a button has been tapped, 
@@ -53,3 +53,18 @@ class of `ScreenElement` defines `draw` and `update` as necessary.
 - TextBox
 - LargeNumberView
 - SignalTrace
+
+# Interface Lifecycle Hooks
+
+The interface is updated in two distict stages:
+
+1. Update Screen
+
+   This redraws all dynamically updating interface components by calling the
+   `update()` function. 
+
+2. Propogate Touch Events
+
+   If there is a touch event, propogates the event down the list of button
+   elements and fires the `reducer()` method on the element that the event
+   occured on.
