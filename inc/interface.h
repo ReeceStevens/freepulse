@@ -1,124 +1,66 @@
-#ifndef _interface_h_
-#define _interface_h_
+#ifndef __interface_h__
+#define __interface_h__
 
-#include "System.h"
-#include "Display.h"
+#include "Screen.h"
+#include "ScreenElement.h"
 
-class ScreenElement {
-private:
-    int row;
-    int column;
-	int len;
-	int width;
+#define DISPLAY_CS PC4
+#define DISPLAY_RESET PC5
+#define DISPLAY_SPI spi_c1
 
-public:
-	int coord_x;
-	int coord_y;
-    int real_len;
-    int real_width;
-    Display* tft;
+#define SCREEN_ROWS 10
+#define SCREEN_COLUMNS 10
 
-    ScreenElement(int row, int column, int len, int width, Display* tft):
-		row(row),column(column),len(len),width(width),tft(tft){
-        coord_x = tft->horizontal_scale*(column-1);
-        coord_y = tft->vertical_scale*(row-1);
-        real_len = tft->vertical_scale*len;
-        real_width = tft->horizontal_scale*width;
-    }
+enum layout{
+	home, settings	
 };
 
-class Button : public ScreenElement{
-private:
-    int color;
-    const char* button_str;
+SPI_Interface display_spi(DISPLAY_SPI);
+Display tft(DISPLAY_CS, DISPLAY_RESET, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
 
-public:
-    bool visible;
-    bool lastTapped;
+layout currentMode = home;
 
-    Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Display* tft):
-		ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible){ 
-        lastTapped = 0;
-    };
-
-    void draw(void){
-	    tft->fillRect(coord_x,coord_y,real_width,real_len,color);
-        tft->textMode();
-        tft->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
-        tft->textColor(RA8875_BLACK, color);
-        tft->textEnlarge(0);
-        tft->textWrite(button_str);
-        tft->graphicsMode();
-    }
-
-
-    bool isTapped(){
-		uint16_t x = tft->touch_points[0];
-		uint16_t y = tft->touch_points[1];
-	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
-		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
-				    return true;
-		    }
-	    }
-	    return false;	
-    }
+void openSettings(void) {
+    currentMode = settings;
 };
 
-class TextBox : public ScreenElement {
-private:
-    int background_color;
-    int text_color;
-    int text_size;
-    const char* str;
-
-public:
-    bool visible;
-	bool outline;
-
-    TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, bool outline, const char* str, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible), outline(outline) { };
-
-    void draw(void){
-        tft->textMode();
-        tft->textSetCursor(coord_x,coord_y);
-	    tft->textColor(text_color,background_color);
-        tft->textEnlarge(1);
-        tft->textWrite(str);
-        tft->graphicsMode();
-		if (outline) {
-			tft->drawRect(coord_x, coord_y, real_width, real_len, text_color);
-		}
-    }
-
+void saveAlarmChanges(void) {
+    currentMode = home;
 };
 
-
-/*
- * Special note for LargeNumberView:
- *
- * Requires 3 grid spaces of width to properly display three digit numbers.
- */
-class LargeNumberView : public ScreenElement {
-private:
-    int background_color;
-    int text_color;
-	int value;
-
-public:
-	bool visible;
-    LargeNumberView(int row, int column, int len, int width, int background_color, int text_color, bool visible, int value, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), value(value), visible(visible) { };
-
-	void draw(void) {
-		int first_digit = value / 100;
-		if (first_digit != 0) {
-			tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
-		}
-		int second_digit = value / 10 - first_digit * 10;
-		if (second_digit != 0) {
-			tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
-		}
-		int third_digit = value - first_digit * 100 - second_digit * 10;
-		tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
-	}
-
+void cancelAlarmChanges(void) {
+    currentMode = home;
 };
+
+void restoreDefaultAlarms(void) {};
+
+Button settings_button = Button(9,9,2,2,RA8875_RED,"Alarm Settings",
+                         true,&tft,&openSettings);
+Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",
+                        true,&tft,&saveAlarmChanges);
+Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",
+                        true,&tft,&cancelAlarmChanges);
+Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",
+                        true,&tft,&restoreDefaultAlarms);
+TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,false,
+                        "FreePulse Patient Monitor v0.9", &tft);
+TextBox hr_label = TextBox(2,8,3,3,RA8875_BLACK,RA8875_BLUE,2,true,
+                            true,"BPM",&tft);
+LargeNumberView heartrate = LargeNumberView(3,8,2,3,RA8875_BLACK,
+                            RA8875_BLUE,true,60,&tft);
+
+void composeMainScreen(Screen& s) {
+    s.add(&settings_button);
+    s.add(&title);
+    s.add(&hr_label);
+    s.add(&heartrate);
+    /* mainScreen.add(ecg.signalTrace); */
+}
+
+void composeSettingsScreen(Screen& s) {
+    s.add(&confirm_button);
+    s.add(&default_button);
+    s.add(&cancel_button);
+}
+
 #endif

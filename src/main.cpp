@@ -1,33 +1,16 @@
 #include "System.h"
 #include "Display.h"
 
-#include "interface.h"
-#include "ecg.h"
+#include "Interface.h"
+#include "Signals.h"
 
-#define DISPLAY_CS PC4
-#define DISPLAY_RESET PC5
-#define DISPLAY_SPI spi_c1
+const int SHORT_DELAY = 1000;
 
-#define SCREEN_ROWS 10
-#define SCREEN_COLUMNS 10
-
-SPI_Interface display_spi(DISPLAY_SPI);
-Display tft(DISPLAY_CS, DISPLAY_RESET, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
-
-int currentMode = 0; // Change mode
+extern Display tft;
 
 Console c(USART2, 115200);
-
-/* Build UI Buttons */
-Button settings = Button(9,9,2,2,RA8875_RED,"Alarm Settings",true,&tft);
-Button record = Button(5,9,2,2,RA8875_BLUE,"Data to Serial",true,&tft);
-Button confirm_button = Button(9,1,2,2,RA8875_GREEN,"Confirm",true,&tft);
-Button cancel_button = Button(9,9,2,2,RA8875_RED,"Cancel",true,&tft);
-Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",true,&tft);
-ECGReadout ecg = ECGReadout(2,1,3,7,PB0,RA8875_BLUE,RA8875_LIGHTGREY,1000,tim3,&tft);
-TextBox title = TextBox(1,3,1,3,RA8875_BLACK,RA8875_WHITE,3,true,false,"FreePulse Patient Monitor v0.9", &tft);
-TextBox hr_label = TextBox(2,8,3,3,RA8875_BLACK,RA8875_BLUE,2,true,true,"BPM", &tft);
-LargeNumberView heartrate = LargeNumberView(3,8,2,3,RA8875_BLACK,RA8875_BLUE,true,60,&tft);
+Screen mainScreen = Screen(&tft);
+Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
@@ -41,29 +24,22 @@ extern "C" void TIM3_IRQHandler(void) {
 void MainScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
   tft.showGrid();
-  title.draw();
-  settings.draw();
-  ecg.draw();
-  heartrate.draw();
-  hr_label.draw();
+  mainScreen.initialDraw();
 }
 
 void SettingsScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
   tft.showGrid();
-  confirm_button.draw();
-  default_button.draw();
-  cancel_button.draw();
+  settingsScreen.initialDraw();
 }
-
-enum layout{
-	home, alarms	
-};
 
 void systemInit() {
 	adcInit();
   	tft.startup();
-	ecg.enable();
+    composeMainScreen(mainScreen);
+    composeSettingsScreen(settingsScreen);
+    connectSignalsToScreen(mainScreen);
+    enableSignalAcquisition();
 }
 
 int main(void)
@@ -71,39 +47,25 @@ int main(void)
 	c.configure();
 	c.print("\n");
 	c.print("Starting FreePulse...\n");
-  	layout currentMode = home;
 	systemInit();
 	c.print("Welcome!\n");
 	while (1) {
 		MainScreenInit();
-		delay(1000);
-		tft.read_touch();
-		tft.reset_touch();
+		delay(SHORT_DELAY);
+        tft.clearTouchEvents();
 		while (currentMode == home) {
-			while (digitalRead(tft.interrupt)){
-				ecg.display_signal();
-				delay(100);
-			}
-			tft.read_touch();	
-			if (settings.isTapped()){
-				tft.fillScreen(RA8875_BLACK);
-				currentMode = alarms;
-			}
+            mainScreen.update(SHORT_DELAY);
+            mainScreen.propogateTouch();
 			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
-		if (currentMode == alarms) {
+		if (currentMode == settings) {
 			SettingsScreenInit();
-			delay(1000);
-			tft.read_touch();
-			tft.reset_touch();
-			while (currentMode == alarms) {
-				while (digitalRead(tft.interrupt)){}
-				tft.read_touch();
+			delay(SHORT_DELAY);
+            tft.clearTouchEvents();
+			while (currentMode == settings) {
+                settingsScreen.update(SHORT_DELAY);
+                settingsScreen.propogateTouch();
 				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
-				if (cancel_button.isTapped()) {
-					tft.fillScreen(RA8875_BLACK);
-					currentMode = home;
-				}
 			}
 		}
     }
