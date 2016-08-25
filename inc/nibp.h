@@ -11,8 +11,10 @@
 #include "Vector.h"
 
 enum NIBPState {
-    inflate, sensing, done, off
+    inflate, measure, done, start, error, na 
 };
+
+void noop_onclick(void) {}
 
 class NIBPReadout : public ScreenElement {
 private:
@@ -29,10 +31,10 @@ private:
 	int trace_color;
 	int background_color;
 	int sampling_rate;
-    const char* title = "";
-    const char* body_text = "";
+    TextBox* title;
+    TextBox* value;
+    Button* button;
 	TimerChannel timx;
-    NIBPState state = off;
 
 
 
@@ -132,18 +134,21 @@ private:
      */
     int calibrate(double input_value) {
         double m = 0.4838;
-        double b = -795.9;
+        double b = -805.9;
         return (int) (m*input_value + b);
     };
 
 public:	
 	int last_val = 0;
+    NIBPState state = start;
+    NIBPState prev_state = na;
+    Sandbox* sandbox;
 
     NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn,
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), 
-                trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
-        
+                trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate),
+                timx(timx) {
 		fifo_size = real_width;
         pressure_fifo.resize(fifo_size);
         pulse_fifo.resize(fifo_size);
@@ -154,6 +159,14 @@ public:
 		scaling_factor = real_len;
 		configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
 		configure_GPIO(pressure_pn, NO_PU_PD, ANALOG);
+        sandbox = new Sandbox(row,column,len,width,background_color,tft);
+        title = new TextBox(row,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
+        value = new TextBox(row+1,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
+        button = new Button(row+2,column+1,2,width-2,background_color,"",true,tft,&noop_onclick);
+        sandbox->add(title);
+        sandbox->add(value);
+        sandbox->add(button);
+        updateInstructions();
 	}
 
 	void enable() {
@@ -176,6 +189,12 @@ public:
     void draw(void){
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
 		draw_border();
+        sandbox->draw();
+    }
+
+    void update(void) {
+        updateInstructions();
+        sandbox->update();
     }
 
 	int read(void) {
@@ -198,7 +217,7 @@ public:
         int sum = 0;
 		__disable_irq();
         for (int i = 0; i < length; i ++) {
-            sum += pressure_fifo[i]; 
+            sum += calibrate(pressure_fifo[i]); 
         }
 		if (!prim) { 
 			__enable_irq();
@@ -206,29 +225,94 @@ public:
         return sum / length;
     }
 
-    void changeTitle(const char* new_title) {
-        this->title = new_title;
-    }
-
-    // TODO: Figure out the compiler error here.
     void updateInstructions(void) {
         switch(this->state) {
-            case off:
-               break;
-            case done:
-                break;
-            case sensing:
-                break;
-            case inflate:
-                int avg_pressure = getRecentAvg(5);
-                if (avg_pressure < 150) {
-                    //TODO: add NIBP logic
-                    changeTitle("Start inflating the cuff."); 
-                } else {
-                    /* changeTitle("Stop!", RA8875_RED); */
-                    delay(1);
+            case start:
+            {
+                if (prev_state == state){
+                    if (button->isTapped()) {
+                        state = inflate;
+                        delay(100000);
+                        tft->clearTouchEvents();
+                    }
+                    break;
                 }
+                else { prev_state = state; } 
+                title->changeText("NIBP Test");
+                value->changeText("");
+                button->changeText("Start");
+                button->changeColor(RA8875_GREEN);
+                draw();
                 break;
+            }
+            case inflate:
+            {
+                if (prev_state == state){
+                    int avg_pressure = getRecentAvg(5);
+                    value->changeText(avg_pressure);
+                    if (avg_pressure > 150) {
+                        state = measure;
+                    }
+                    if (button->isTapped()) {
+                        state = start;         
+                        delay(100000);
+                        tft->clearTouchEvents();
+                    }
+                    break;
+                }
+                else { prev_state = state; } 
+                title->changeText("Inflating...");
+                button->changeText("Cancel");
+                button->changeColor(RA8875_RED);
+                int avg_pressure = getRecentAvg(5);
+                value->changeText(avg_pressure);
+                draw();
+                break;
+            }
+            case measure:
+            // TODO: check a "measurement_complete" flag to see if the 
+            // BP measurement is done.
+            {
+                if (prev_state == state){
+                    int avg_pressure = getRecentAvg(5);
+                    value->changeText(avg_pressure);
+                    if (avg_pressure > 150) {
+                        state = measure;
+                    }
+                    if (button->isTapped()) {
+                        state = start;         
+                        delay(100000);
+                        tft->clearTouchEvents();
+                    }
+                    break;
+                }
+                else { prev_state = state; } 
+                title->changeText("Measuring...");
+                button->changeText("Cancel");
+                break;
+            }
+            case done:
+            {
+                if (prev_state == state){
+                    if (button->isTapped()) {
+                        state = start;         
+                    }
+                    break;
+                }
+                else { prev_state = state; } 
+                break;
+            }
+            case error:
+            {
+                if (prev_state == state){
+                    if (button->isTapped()) {
+                        state = start;         
+                    }
+                    break;
+                }
+                else { prev_state = state; } 
+                break;
+            }
             default:
                 break;
         }
@@ -265,6 +349,6 @@ public:
 		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
 		last_val = new_val;
 	}
-
 };
+
 #endif

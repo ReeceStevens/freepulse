@@ -21,25 +21,15 @@ public:
         this->elements.push_back(e);
     }
 
-    void add(Button* e) {
-        this->buttons.push_back(e);
-    }
-
     void initialDraw() {
         for (int i = 0; i < elements.size(); i++) {
             elements[i]->draw();
-        }
-        for (int i = 0; i < buttons.size(); i++) {
-            buttons[i]->draw();
         }
     }
 
     void update() {
         for (int i = 0; i < elements.size(); i++) {
             elements[i]->update();
-        }
-        for (int i = 0; i < buttons.size(); i++) {
-            buttons[i]->update();
         }
     }
 
@@ -48,12 +38,9 @@ public:
         delay(delay_time);
     }
 
-    void propogateTouch() {
+    void readTouch() {
         if (!digitalRead(tft->interrupt)) {
             tft->read_touch();
-            for (int i = 0; i < buttons.size(); i++) {
-                buttons[i]->updateIfTapped();
-            }
         }
     }
 
