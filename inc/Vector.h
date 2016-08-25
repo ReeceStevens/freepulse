@@ -3,6 +3,8 @@
 #ifndef _Vector_h
 #define _Vector_h 1
 
+#include <stdint.h>
+
 template<typename T>
 
 struct Vector {
