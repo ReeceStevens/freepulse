@@ -19,7 +19,7 @@ enum NIBPState {
 void noop_onclick(void) {}
 
 // TODO: Does this need to be more efficient?
-double rms(Vector<int> vals, int window) {
+double rms(int* vals, int window) {
     int running_sum = 0;
     for (int i = 0; i < window; i ++) {
         int x = vals[i];
@@ -44,6 +44,9 @@ private:
 	int trace_color;
 	int background_color;
 	int sampling_rate;
+    int goal_pressure;
+    int rms_window_size = 100;
+    Vector<double> pulse_pressures;
     TextBox* title;
     TextBox* value;
     Button* button;
@@ -165,6 +168,7 @@ public:
 		fifo_size = real_width;
         pressure_fifo.resize(fifo_size);
         pulse_fifo.resize(fifo_size);
+        pulse_pressures.resize(20);
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
@@ -238,32 +242,58 @@ public:
         return sum / length;
     }
 
+    double getPulsePressureRMS(int window) {
+		uint32_t prim = __get_PRIMASK();
+		__disable_irq();
+        int* pulse_data = new int[window];
+        for (int i = 0; i < window; i ++) {
+            pulse_data[i] = pulse_fifo[i];
+        }
+		if (!prim) { 
+			__enable_irq();
+		}
+        double retval = rms(pulse_data, window);
+        delete [] pulse_data;
+        return retval;
+    }
+
     void updateInstructions(void) {
         switch(this->state) {
             case start:
             {
+                if (prev_state != state) {
+                    prev_state = state;
+                    title->changeText("NIBP Test");
+                    value->changeText("");
+                    button->changeText("Start");
+                    button->changeColor(RA8875_GREEN);
+                    draw();
+                }
                 if (prev_state == state){
                     if (button->isTapped()) {
                         state = inflate;
                         delay(100000);
                         tft->clearTouchEvents();
                     }
-                    break;
                 }
-                else { prev_state = state; } 
-                title->changeText("NIBP Test");
-                value->changeText("");
-                button->changeText("Start");
-                button->changeColor(RA8875_GREEN);
-                draw();
                 break;
             }
             case inflate:
             {
-                if (prev_state == state){
+                if (prev_state != state) {
+                    prev_state = state;
+                    goal_pressure = 150;
+                    title->changeText("Inflating...");
+                    button->changeText("Cancel");
+                    button->changeColor(RA8875_RED);
                     int avg_pressure = getRecentAvg(5);
                     value->changeText(avg_pressure);
-                    if (avg_pressure > 150) {
+                    draw();
+                }
+                else {
+                    int avg_pressure = getRecentAvg(5);
+                    value->changeText(avg_pressure);
+                    if (avg_pressure > goal_pressure) {
                         state = measure;
                     }
                     if (button->isTapped()) {
@@ -271,48 +301,66 @@ public:
                         delay(100000);
                         tft->clearTouchEvents();
                     }
-                    break;
                 }
-                else { prev_state = state; } 
-                title->changeText("Inflating...");
-                button->changeText("Cancel");
-                button->changeColor(RA8875_RED);
-                int avg_pressure = getRecentAvg(5);
-                value->changeText(avg_pressure);
-                draw();
                 break;
             }
             case measure:
-            // TODO: check a "measurement_complete" flag to see if the 
-            // BP measurement is done.
             {
-                if (prev_state == state){
+                if (prev_state != state) {
+                    prev_state = state;
+                    title->changeText("Measuring...");
+                    button->changeText("Cancel");
+                    pulse_pressures.empty();
+                }
+                else {
                     int avg_pressure = getRecentAvg(5);
                     value->changeText(avg_pressure);
-                    if (avg_pressure > 150) {
-                        state = measure;
+                    if (goal_pressure < 20) {
+                        // Finished! Validate measurements
+                        // and perform calculations.
+                        // For now, print out the array.
+                        c.print("rms_vals = [");
+                        for (int i = 0; i < pulse_pressures.size(); i ++) {
+                            c.print(pulse_pressures[i]);
+                            c.print(", ");
+                        }
+                        c.print("];\n");
+                        /* state = done; */
+                    }
+                    if (avg_pressure < goal_pressure) {
+                        delay(10000); // Give some time for the measurement window to represent this pressure level.
+                        c.print("Measurement taken at ");
+                        c.print(avg_pressure);
+                        c.print(" mmHg\n");
+                        // 1. Get the RMS value
+                        double rms_val = getPulsePressureRMS(rms_window_size);
+                        // 2. Store it in the pulse pressure array
+                        pulse_pressures.push_back(rms_val);
+                        // 3. Decrement the goal pressure by 10 mmHg.
+                        goal_pressure -= 10;
                     }
                     if (button->isTapped()) {
                         state = start;         
                         delay(100000);
                         tft->clearTouchEvents();
                     }
-                    break;
                 }
-                else { prev_state = state; } 
-                title->changeText("Measuring...");
-                button->changeText("Cancel");
                 break;
             }
             case done:
             {
-                if (prev_state == state){
+                if (prev_state != state) {
+                    prev_state = state;
+                    title->changeText("Complete!");
+                    value->changeText("    ");
+                    button->changeText("Restart");
+                    button->changeColor(RA8875_GREEN);
+                }
+                else {
                     if (button->isTapped()) {
                         state = start;         
                     }
-                    break;
                 }
-                else { prev_state = state; } 
                 break;
             }
             case error:
