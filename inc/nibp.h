@@ -16,6 +16,17 @@ enum NIBPState {
 
 void noop_onclick(void) {}
 
+// TODO: Does this need to be more efficient?
+double rms(Vector<int> vals, int window) {
+    int running_sum = 0;
+    for (int i = 0; i < window; i ++) {
+        int x = vals[i];
+        running_sum += x*x;
+    }
+    running_sum /= window;
+    return sqrt(running_sum);
+}
+
 class NIBPReadout : public ScreenElement {
 private:
 	int fifo_size;

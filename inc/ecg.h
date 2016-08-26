@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include "System.h"
 #include "CircleBuffer.h"
 #include "ScreenElement.h"
