@@ -23,6 +23,8 @@ extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 		int val = nibp.read();
+        c.print(val);
+        c.print("\n");
 	}
 }
 
@@ -51,9 +53,9 @@ int main(void)
 {
 	c.configure();
 	c.print("\n");
-	c.print("Starting FreePulse...\n");
+	/* c.print("Starting FreePulse...\n"); */
 	systemInit();
-	c.print("Welcome!\n");
+	/* c.print("Welcome!\n"); */
 	while (1) {
 		MainScreenInit();
 		delay(SHORT_DELAY);

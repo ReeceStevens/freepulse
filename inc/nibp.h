@@ -54,14 +54,26 @@ private:
      * Fs = 500 Hz
      * Fc = 30 Hz
      */
+	/* double pressure_sos_filter[3][6] = { */
+	/* 	{1, 2, 1, 1, -1.6696, 0.7957}, */
+	/* 	{1, 2, 1, 1, -1.4328, 0.5410}, */
+	/* 	{1, 1, 0, 1, -0.6796, 0.0} */
+	/* }; */
+
+    /*
+     * IIR Butterworth filter
+     * Fs = 500 Hz
+     * Fc = 5 Hz
+     */
 	double pressure_sos_filter[3][6] = {
-		{1, 2, 1, 1, -1.6696, 0.7957},
-		{1, 2, 1, 1, -1.4328, 0.5410},
-		{1, 1, 0, 1, -0.6796, 0.0}
+		{1, 2, 1, 1, -1.9581, 0.9619},
+		{1, 2, 1, 1, -1.8996, 0.9033},
+		{1, 1, 0, 1, -0.9391, 0.0}
 	};
 
 	double pulse_gain[3] = {0.0038, 0.0036, 0.0592};
-	double pressure_gain[3] = {0.0315, 0.0271, 0.1602};
+	/* double pressure_gain[3] = {0.0315, 0.0271, 0.1602}; */
+	double pressure_gain[3] = {0.00097, 0.00094, 0.0305};
 
 
 	double xs1[3][3] = {
@@ -202,8 +214,8 @@ public:
 		pulse_fifo.add(nibp_pulse_data);
 		int nibp_pressure_data = filter_pressure(analogRead(pressure_pn), pressure_sos_filter, pressure_gain);
 		pressure_fifo.add(nibp_pressure_data);
-		return nibp_pulse_data; // Return is only for console logging purposes
-		/* return calibrate(nibp_pressure_data); // Return is only for console logging purposes */
+		/* return nibp_pulse_data; // Return is only for console logging purposes */
+		return calibrate(nibp_pressure_data); // Return is only for console logging purposes
 	}
 
     int scale(int raw_signal) {
