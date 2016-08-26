@@ -188,6 +188,13 @@ public:
         length += 1;
     }
 
+    void empty() {
+        T* empty_data = new T[capacity];
+        delete [] data;
+        data = empty_data;
+        length = 0;
+    }
+
 };
 
 #endif /* _Vector_h */
