@@ -1,6 +1,7 @@
 #include "System.h"
 #include "Display.h"
 
+Console c(USART2, 115200);
 #include "Interface.h"
 #include "Signals.h"
 
@@ -8,7 +9,6 @@ const int SHORT_DELAY = 1000;
 
 extern Display tft;
 
-Console c(USART2, 115200);
 Screen mainScreen = Screen(&tft);
 Screen settingsScreen = Screen(&tft);
 
@@ -23,8 +23,8 @@ extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 		int val = nibp.read();
-        c.print(val);
-        c.print("\n");
+        /* c.print(val); */
+        /* c.print("\n"); */
 	}
 }
 

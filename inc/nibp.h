@@ -10,6 +10,8 @@
 #include "misc.h"
 #include "Vector.h"
 
+extern Console c;
+
 enum NIBPState {
     inflate, measure, done, start, error, na 
 };
