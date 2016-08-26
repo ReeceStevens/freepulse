@@ -325,7 +325,7 @@ public:
                             c.print(", ");
                         }
                         c.print("];\n");
-                        /* state = done; */
+                        state = done;
                     }
                     if (avg_pressure < goal_pressure) {
                         delay(10000); // Give some time for the measurement window to represent this pressure level.
@@ -340,7 +340,7 @@ public:
                         goal_pressure -= 10;
                     }
                     if (button->isTapped()) {
-                        state = start;         
+                        state = start;
                         delay(100000);
                         tft->clearTouchEvents();
                     }
@@ -358,20 +358,26 @@ public:
                 }
                 else {
                     if (button->isTapped()) {
-                        state = start;         
+                        state = start;
                     }
                 }
                 break;
             }
             case error:
             {
-                if (prev_state == state){
-                    if (button->isTapped()) {
-                        state = start;         
-                    }
-                    break;
+                if (prev_state != state) {
+                    prev_state = state;
+                    title->changeText("NIBP Error.");
+                    value->changeText("    ");
+                    button->changeText("Retry");
+                    button->changeColor(RA8875_RED);
                 }
-                else { prev_state = state; } 
+                else {
+                    if (button->isTapped()) {
+                        state = start;
+                    }
+                }
+                prev_state = state;
                 break;
             }
             default:
