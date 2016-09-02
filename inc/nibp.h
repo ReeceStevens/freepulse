@@ -12,6 +12,8 @@
 
 extern Console c;
 
+const int BIG_DELAY = 1000000;
+
 enum NIBPState {
     inflate, measure, done, start, error, na 
 };
@@ -35,6 +37,7 @@ private:
 	int avg_size;
 	int avg_cursor;
 	int display_cursor;
+    int delay_counter = 0;
 	Pin_Num pulse_pn;
 	Pin_Num pressure_pn;
 	CircleBuffer<int> pulse_fifo;
@@ -306,6 +309,11 @@ public:
             }
             case measure:
             {
+                if (button->isTapped()) {
+                    state = start;
+                    delay(100000);
+                    tft->clearTouchEvents();
+                }
                 if (prev_state != state) {
                     prev_state = state;
                     title->changeText("Measuring...");
@@ -325,10 +333,15 @@ public:
                             c.print(", ");
                         }
                         c.print("];\n");
-                        state = done;
+                        /* state = done; */
                     }
                     if (avg_pressure < goal_pressure) {
-                        delay(10000); // Give some time for the measurement window to represent this pressure level.
+                        if (delay_counter < BIG_DELAY) {
+                             delay_counter++; 
+                             break;
+                        } else {
+                            delay_counter = 0;
+                        }
                         c.print("Measurement taken at ");
                         c.print(avg_pressure);
                         c.print(" mmHg\n");
@@ -338,11 +351,6 @@ public:
                         pulse_pressures.push_back(rms_val);
                         // 3. Decrement the goal pressure by 10 mmHg.
                         goal_pressure -= 10;
-                    }
-                    if (button->isTapped()) {
-                        state = start;
-                        delay(100000);
-                        tft->clearTouchEvents();
                     }
                 }
                 break;
