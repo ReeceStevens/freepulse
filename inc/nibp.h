@@ -12,7 +12,7 @@
 
 extern Console c;
 
-const int BIG_DELAY = 1000000;
+const int BIG_DELAY = 100;
 
 enum NIBPState {
     inflate, measure, done, start, error, na 
