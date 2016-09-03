@@ -12,7 +12,7 @@
 
 extern Console c;
 
-const int BIG_DELAY = 100;
+const int BIG_DELAY = 500;
 
 enum NIBPState {
     inflate, measure, done, start, error, na 
@@ -48,7 +48,7 @@ private:
 	int background_color;
 	int sampling_rate;
     int goal_pressure;
-    int rms_window_size = 100;
+    int rms_window_size = 500;
     Vector<double> pulse_pressures;
     TextBox* title;
     TextBox* value;
