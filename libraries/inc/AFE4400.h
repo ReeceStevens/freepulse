@@ -65,7 +65,9 @@ private:
 public:
    
     // TODO: Still need to add the CS pin!
-    PulseOx(SPI_Interface* SPI): SPI(SPI) {}
+    PulseOx(SPI_Interface* SPI): SPI(SPI) {
+        // Must perform software reset (SW_RST)
+    }
 
     /*
      * writeData() - Put 24-bit data into a target register
@@ -94,5 +96,24 @@ public:
         return register_data;
     }
 
+    /*
+     * calibrate() -- Calibrate the TIA gain and LED drive current
+     * before taking a measurement. Required to compensate for differing
+     * ambient light conditions, etc.
+     */
+    uint32_t calibrate(){
+        // 1. Set R_f to 1MOhm
+        //    TIA_AMB_GAIN: RF_LED[2:0] set to 110
+        //    (see p.64 in docs for all Rf options
+
+        // 2. Set LED drive current to 5mA
+        //    LEDCNTRL (0x22)
+        //      LED1[15:8], LED2[7:0]
+        //    Formula:
+        //         LED_Register_value
+        //         ------------------  *  50 mA = current
+        //              256
+        
+    }
 
 };
