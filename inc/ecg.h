@@ -6,20 +6,17 @@
 #include <math.h>
 #include "System.h"
 #include "CircleBuffer.h"
-#include "interface.h"
+#include "ScreenElement.h"
 #include "misc.h"
 #include "Vector.h"
 
-class ECGReadout : public ScreenElement {
+class ECG : public ScreenElement {
 private:
 	int fifo_size;
-	int avg_size;
-	int avg_cursor;
 	int display_cursor;
 	Pin_Num pn;
 	CircleBuffer<int> fifo;
 	int scaling_factor;
-	Vector<int> avg_queue;
 	int trace_color;
 	int background_color;
 	int sampling_rate;
@@ -73,17 +70,15 @@ private:
 
 public:	
 	int last_val = 0;
+    SignalTrace* signalTrace;
 
-    ECGReadout(int row, int column, int len, int width, Pin_Num pn, 
+    ECG(int row, int column, int len, int width, Pin_Num pn, int max_signal_value,
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
+        signalTrace = new SignalTrace(row,column,len,width,background_color,trace_color,max_signal_value,&fifo,tft);
 		fifo_size = real_width;
-		fifo = CircleBuffer<int>(fifo_size);
-		avg_size = 10;
-		avg_cursor = 0;
-		display_cursor = 0;
-		avg_queue = Vector<int>(avg_size);
+		fifo.resize(fifo_size);
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
 	}
@@ -93,46 +88,10 @@ public:
 		sampler.enable();
 	}
 
-	void draw_border(void){
-	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
-    }
-
-    void draw(void){
-        tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
-		draw_border();
-    }
-
 	int read(void) {
 		int ecg_data = filter(analogRead(pn));
 		fifo.add(ecg_data);
 		return ecg_data;
-	}
-
-	void display_signal(void) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
-		int new_val = fifo.newest();
-		if (!prim) { 
-			__enable_irq();
-		}
-		int threshold = 5;
-		int display = new_val * real_len;
-		display /= 4096;
-		if (display > real_len) { display = real_len; }
-		else if (display < 0) { display = 0; }
-		int old_display = last_val * real_len;
-		old_display /= 4096;
-		if (old_display > real_len) { old_display = real_len; }
-		else if (old_display < 0) { old_display = 0; }
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
-		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
-			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		} else {
-			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		}
-		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
-		last_val = new_val;
 	}
 
 };
