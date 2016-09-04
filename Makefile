@@ -36,7 +36,7 @@ SRCS  += stm32f4xx_usart.c
 SRCS  += misc.c
 SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
-SRCS += $(STM_DIR)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f4xx.s
+SRCS  += startup.s
 
 INC_DIRS  = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/inc
 INC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/Include
