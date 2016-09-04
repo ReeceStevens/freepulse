@@ -4,11 +4,10 @@
 #include "System.h"
 #include "Display.h"
 #include "CircleBuffer.h"
-#include "Vector.h"
 
 
 class ScreenElement {
-protected:
+private:
     int row;
     int column;
 	int len;
@@ -39,7 +38,6 @@ class Button : public ScreenElement{
 private:
     int color;
     const char* button_str;
-    bool changed = false;
 
 public:
     bool visible;
@@ -61,36 +59,17 @@ public:
         tft->graphicsMode();
     }
 
-    void update(){
-        if (changed) { draw(); changed = false; }
+
+    bool updateIfTapped(){
 		uint16_t x = tft->touch_points[0];
 		uint16_t y = tft->touch_points[1];
 	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
 		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
                     reducer();
+				    return true;
 		    }
 	    }
-    }
-
-    bool isTapped() {
-		uint16_t x = tft->touch_points[0];
-		uint16_t y = tft->touch_points[1];
-	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
-		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
-                    return true;
-		    }
-	    }
-        return false;
-    }
-
-    void changeColor(int new_background_color) {
-        color = new_background_color;
-        changed = true;
-    }
-
-    void changeText(const char* new_text) {
-        button_str = new_text;
-        changed = true;
+	    return false;	
     }
 };
 
@@ -100,8 +79,6 @@ private:
     int text_color;
     int text_size;
     const char* str;
-    bool changed = false;
-    bool should_deallocate_before_reassignment = false;
 
 public:
     bool visible;
@@ -114,33 +91,11 @@ public:
         tft->textSetCursor(coord_x,coord_y);
 	    tft->textColor(text_color,background_color);
         tft->textEnlarge(1);
-        tft->textWrite(" ");
         tft->textWrite(str);
         tft->graphicsMode();
 		if (outline) {
 			tft->drawRect(coord_x, coord_y, real_width, real_len, text_color);
 		}
-    }
-
-    void update(void) {
-        if (changed) { draw(); changed = false; }
-    }
-
-    void changeText(const char* new_text) {
-        if (should_deallocate_before_reassignment) { delete [] str; }
-        should_deallocate_before_reassignment = false;
-        str = new_text;
-        changed = true;
-    }
-
-    void changeText(int numerical_val) {
-        if (should_deallocate_before_reassignment) { delete [] str; }
-        should_deallocate_before_reassignment = true;
-        char* result = new char[10]; 
-        sprintf(result, "%d", numerical_val);
-        const char* new_str = result;
-        str = new_str;
-        changed = true;
     }
 
 };
@@ -221,43 +176,6 @@ public:
 		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
 		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
 		last_val = new_val;
-    }
-
-};
-
-class Sandbox : public ScreenElement {
-private:
-    Vector<ScreenElement*> elements;
-    int last_size = 0;
-    int background_color = RA8875_BLACK;
-
-public:
-    Sandbox(int row, int column, int len, int width, int background_color, Display* tft):
-      ScreenElement(row,column,len,width,tft), background_color(background_color) {}
-
-    void add(ScreenElement* a) {
-        this->elements.push_back(a); 
-    }
-
-    void empty() {
-        int size = this->elements.size();
-        for (int i = 0; i < size; i ++) {
-            delete this->elements[i];
-        }
-    }
-   
-    void draw() {
-        int size = this->elements.size();
-        for (int i = 0; i < size; i ++) {
-            this->elements[i]->draw();
-        }
-    }
-
-    void update() {
-        int size = this->elements.size();
-        for (int i = 0; i < size; i ++) {
-            this->elements[i]->update();
-        }
     }
 
 };
