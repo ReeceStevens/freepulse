@@ -6,6 +6,8 @@
 #include <stdio.h>
 
 #include "SPI.h"
+#include "ScreenElement.h"
+#include "Vector.h"
 
 /* Useful commands */
 #define SW_RST          0x04
@@ -64,17 +66,20 @@
 #define DIAG            0x30
 
 enum pulseox_state {
-    off, idle, calibrate, sample, calculate
+    off, idle, calibrating, sampling, calculating
 };
 
-const int DC_WINDOW_SIZE = 50;
-const int MAX_CALIBRATION_ITERATIONS = 10;
+static const int DC_WINDOW_SIZE = 50;
+static const int MAX_CALIBRATION_ITERATIONS = 10;
+static const int MEASUREMENT_WINDOW_SIZE = 1000;
 
-class PulseOx {
+class PulseOx: public ScreenElement {
 private:
+    Vector<uint32_t> red_signal;
+    Vector<uint32_t> ir_signal;
     SPI_Interface* SPI;
     Pin_Num cs, adc_rdy;
-    pulseox_state state;
+    pulseox_state state = off;
     float dc_goal = 0.36; // 30% of ADC full-scale voltage (1.2V)
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
@@ -175,6 +180,28 @@ public:
 		SPI->begin();
         writeData(CONTROL0, SW_RST);
         delay(1000);
+        red_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        state = idle;
+    }
+
+    void draw() {
+        // TODO: interface stuff
+    }
+
+    void update() {
+        switch(state) {
+            case off:
+                break;
+            case idle:
+                break;
+            case calibrating:
+                break;
+            case sampling:
+                break;
+            case calculating:
+                break;
+        }
     }
 
     /*
@@ -218,6 +245,19 @@ public:
                 return false;
             }
             iter_count++;
+        }
+    }
+
+    /*
+     * get_measurement() -- Trigger an SpO2 calculation
+     */
+    int get_measurement() {
+        red_signal.empty();
+        ir_signal.empty();
+        begin_sampling();
+        for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) {
+            red_signal.push_back(getLED1Data());
+            ir_signal.push_back(getLED2Data());
         }
     }
 
