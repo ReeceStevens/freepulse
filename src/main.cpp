@@ -53,7 +53,7 @@ int main(void)
         tft.clearTouchEvents();
 		while (currentMode == home) {
             mainScreen.update(SHORT_DELAY);
-            mainScreen.propogateTouch();
+            mainScreen.readTouch();
 			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 		}
 		if (currentMode == settings) {
@@ -62,7 +62,7 @@ int main(void)
             tft.clearTouchEvents();
 			while (currentMode == settings) {
                 settingsScreen.update(SHORT_DELAY);
-                settingsScreen.propogateTouch();
+                settingsScreen.readTouch();
 				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
 			}
 		}
