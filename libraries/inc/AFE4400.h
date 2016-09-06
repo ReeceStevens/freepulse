@@ -77,6 +77,7 @@ class PulseOx: public ScreenElement {
 private:
     Vector<uint32_t> red_signal;
     Vector<uint32_t> ir_signal;
+    LargeNumberView* numview;
     SPI_Interface* SPI;
     Pin_Num cs, adc_rdy;
     pulseox_state state = off;
@@ -173,23 +174,27 @@ private:
 
 public:
    
-    PulseOx(SPI_Interface* SPI, Pin_Num cs, Pin_Num adc_rdy): SPI(SPI) {
+    PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num adc_rdy, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI) {
         // Must perform software reset (SW_RST)
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
+		configure_GPIO(adc_rdy, DOWN, INPUT);
         digitalWrite(cs, HIGH);
 		SPI->begin();
         writeData(CONTROL0, SW_RST);
         delay(1000);
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        numview = new LargeNumberView(row,column,len,width,RA8875_BLACK,RA8875_GREEN,true,98, tft);
         state = idle;
     }
 
     void draw() {
+        numview->draw();
         // TODO: interface stuff
     }
 
     void update() {
+        numview->update();
         switch(state) {
             case off:
                 break;
@@ -254,7 +259,7 @@ public:
     int get_measurement() {
         red_signal.empty();
         ir_signal.empty();
-        begin_sampling();
+        /* begin_sampling(); */
         for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) {
             red_signal.push_back(getLED1Data());
             ir_signal.push_back(getLED2Data());
