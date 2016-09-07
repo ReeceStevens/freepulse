@@ -65,8 +65,10 @@
 
 #define DIAG            0x30
 
+extern Console c;
+
 enum pulseox_state {
-    off, idle, calibrating, sampling, calculating
+    off, idle, calibrating, measuring
 };
 
 static const int DC_WINDOW_SIZE = 50;
@@ -244,13 +246,26 @@ public:
             case off:
                 break;
             case idle:
+                // TODO: handle state when no probe is connected
+                //       or no finger is in the probe
                 break;
             case calibrating:
+            {
+                bool success = calibrate();
+                if (success) {
+                    state = measuring;
+                } else {
+                    // TODO: error handling for calibration
+                    state = idle;
+                }
                 break;
-            case sampling:
+            }
+            case measuring:
+            {
+                int new_measurement = get_measurement();
+                numview->changeNumber(new_measurement);
                 break;
-            case calculating:
-                break;
+            }
         }
     }
 
