@@ -79,7 +79,7 @@ private:
     Vector<uint32_t> ir_signal;
     LargeNumberView* numview;
     SPI_Interface* SPI;
-    Pin_Num cs, adc_rdy;
+    Pin_Num cs, rst, adc_rdy;
     pulseox_state state = off;
     float dc_goal = 0.36; // 30% of ADC full-scale voltage (1.2V)
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
@@ -172,15 +172,60 @@ private:
         current_led_i_value = value;
     }
 
+    /*
+     * From datasheet, p.31
+     * Sets all pulse timing edges
+     * Assumes a pulse repetition frequency of 500 Hz
+     */
+    void configurePulseTimings(void) {
+        writeData(LED2STC, 6050);
+        writeData(LED2ENDC, 7998);
+        writeData(LED2LEDSTC, 6000);
+        writeData(LED2LEDENDC, 7999);
+        writeData(ALED2STC, 50);
+        writeData(ALED2ENDC, 1998);
+        writeData(LED1STC, 2050);
+        writeData(LED1ENDC, 3998);
+        writeData(LED1LEDSTC, 2000);
+        writeData(LED1LEDENDC, 3999);
+        writeData(ALED1STC, 4050);
+        writeData(ALED1ENDC, 5998);
+        writeData(LED2CONVST, 4);
+        writeData(LED2CONVEND, 1999);
+        writeData(ALED2CONVST, 2004);
+        writeData(ALED2CONVEND, 3999);
+        writeData(LED1CONVST, 4004);
+        writeData(LED1CONVEND, 5999);
+        writeData(ALED1CONVST, 6004);
+        writeData(ALED1CONVEND, 7999);
+        writeData(ADCRSTSTCT0, 0);
+        writeData(ADCRSTENDCT0, 3);
+        writeData(ADCRSTSTCT1, 2000);
+        writeData(ADCRSTENDCT1, 2003);
+        writeData(ADCRSTSTCT2, 4000);
+        writeData(ADCRSTENDCT2, 4003);
+        writeData(ADCRSTSTCT3, 6000);
+        writeData(ADCRSTENDCT3, 6003);
+        writeData(PRPCOUNT, 7999);
+        writeData(CONTROL1, 0x0102); // Enable timers
+    }
+
 public:
    
-    PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num adc_rdy, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI) {
+    PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num rst, Pin_Num adc_rdy, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI) {
         // Must perform software reset (SW_RST)
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
 		configure_GPIO(adc_rdy, DOWN, INPUT);
         digitalWrite(cs, HIGH);
+        digitalWrite(rst, LOW);
+        delay(10000);
+        digitalWrite(rst, HIGH);
+        delay(10000);
 		SPI->begin();
         writeData(CONTROL0, SW_RST);
+        configurePulseTimings();
+        setRfValue(0x06);
+        setLEDCurrent(0x1A);
         delay(1000);
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
