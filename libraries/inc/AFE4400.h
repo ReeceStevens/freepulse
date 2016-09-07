@@ -315,15 +315,21 @@ public:
 
     /*
      * get_measurement() -- Trigger an SpO2 calculation
+     *
+     * TODO: measurements should be done on a timer interval, not in a loop.
+     *
+     * TODO: The measurement process can't hang the whole system. Needs to run
+     *       in the background and play nice.
      */
     int get_measurement() {
         red_signal.empty();
         ir_signal.empty();
-        /* begin_sampling(); */
+        /* begin sampling */
         for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) {
             red_signal.push_back(getLED1Data());
             ir_signal.push_back(getLED2Data());
         }
+        /* perform calculation */
     }
 
 
