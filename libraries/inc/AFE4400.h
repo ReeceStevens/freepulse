@@ -93,9 +93,9 @@ private:
      */
     void writeData(uint8_t target_register, uint32_t data) {
         SPI->transfer(target_register);
-        uint8_t first_transfer = (uint8_t) (data >> 16);
-        uint8_t second_transfer = (uint8_t) (data >> 8);
-        uint8_t third_transfer = (uint8_t) (data);
+        uint8_t first_transfer = (uint8_t) ((data >> 16) & 0xFF);
+        uint8_t second_transfer = (uint8_t) ((data >> 8) & 0xFF);
+        uint8_t third_transfer = (uint8_t) ((data) & 0xFF);
         SPI->transfer(first_transfer); /* Bits 23-16 */
         SPI->transfer(second_transfer); /* Bits 15-8 */
         SPI->transfer(third_transfer); /* Bits 7-0 */
@@ -108,9 +108,9 @@ private:
         writeData(CONTROL0, 0x00000001);
         SPI->transfer(target_register);
         // Send dummy data to read the next 24 bits
-        uint8_t first_transfer = SPI->transfer(0x00);
-        uint8_t second_transfer = SPI->transfer(0x00);
-        uint8_t third_transfer = SPI->transfer(0x00);
+        uint32_t first_transfer = SPI->transfer(0x00);
+        uint32_t second_transfer = SPI->transfer(0x00);
+        uint32_t third_transfer = SPI->transfer(0x00);
         uint32_t register_data = (first_transfer << 16) + (second_transfer << 8) + third_transfer;
         return register_data;
     }
@@ -169,7 +169,7 @@ private:
      *            256
      */
     void setLEDCurrent(uint8_t value) {
-        uint32_t both_leds = (value << 8) + value;
+        uint32_t both_leds = (((uint32_t)value) << 8) + value;
         writeData(LEDCNTRL, both_leds);
         current_led_i_value = value;
     }
