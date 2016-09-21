@@ -7,8 +7,8 @@ PROJ_NAME=freepulse
 
 
 # This is the directory containing the firmware package
-STM_DIR=/Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
-PERIPH_DRIVERS_DIR = /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS
+STM_DIR=/home/reece/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
+PERIPH_DRIVERS_DIR = /home/reece/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS
 
 # This is where the source files are located,
 # which are not in the current directory
@@ -46,7 +46,7 @@ INC_DIRS += ./libraries/inc
 INC_DIRS += ./system/inc
 INC_DIRS += ./inc
 
-GTEST_ROOT = /Users/reecestevens/projects/freepulse/googletest/googletest
+GTEST_ROOT = /home/reece/projects/freepulse/googletest/googletest
 TEST_ROOT  = ./tests
 TEST_DIRS  = $(INC_DIRS)
 TEST_DIRS += $(GTEST_ROOT)/include
@@ -58,10 +58,10 @@ TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
 ######################################################################
 
 # This is the path to the toolchain
-TOOLS_DIR = /Users/reecestevens/projects/freepulse/tools/gcc-arm-none-eabi-4_8-2014q1/bin
-CC      = $(TOOLS_DIR)/arm-none-eabi-g++
-OBJCOPY = $(TOOLS_DIR)/arm-none-eabi-objcopy
-GDB     = $(TOOLS_DIR)/arm-none-eabi-gdb
+TOOLS_DIR = /home/reece/projects/freepulse/tools/gcc-arm-none-eabi-4_8-2014q1/bin
+CC      = arm-none-eabi-g++
+OBJCOPY = arm-none-eabi-objcopy
+GDB     = arm-none-eabi-gdb
 TESTCC  = g++ 
 
 INCLUDE = $(addprefix -I,$(INC_DIRS))
