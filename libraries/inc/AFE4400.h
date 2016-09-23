@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "SPI.h"
+#include "Display.h"
 #include "ScreenElement.h"
 #include "Vector.h"
 
@@ -217,6 +218,7 @@ public:
     PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num rst, Pin_Num adc_rdy, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI) {
         // Must perform software reset (SW_RST)
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
+		configure_GPIO(rst, NO_PU_PD, OUTPUT);
 		configure_GPIO(adc_rdy, DOWN, INPUT);
         digitalWrite(cs, HIGH);
         digitalWrite(rst, LOW);
@@ -227,7 +229,8 @@ public:
         writeData(CONTROL0, SW_RST);
         configurePulseTimings();
         setRfValue(0x06);
-        setLEDCurrent(0x1A);
+        /* setLEDCurrent(0x1A); */
+        setLEDCurrent(255);
         delay(1000);
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
@@ -246,9 +249,12 @@ public:
             case off:
                 break;
             case idle:
+            {
                 // TODO: handle state when no probe is connected
                 //       or no finger is in the probe
+                int current_value = readData(CONTROL1);
                 break;
+            }
             case calibrating:
             {
                 bool success = calibrate();
