@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+#include <math.h>
 
+#include "stm32f4xx_exti.h"
 #include "SPI.h"
 #include "Display.h"
 #include "ScreenElement.h"
@@ -59,7 +61,7 @@
 #define ALARM           0x29
 #define LED2VAL         0X2A
 #define ALED2VAL        0x2B
-#define LED1VAl         0x2C
+#define LED1VAL         0x2C
 #define ALED1VAL        0x2D
 #define LED2_ALED2VAL   0x2E
 #define LED1_ALED1VAL   0x2F
@@ -74,25 +76,28 @@ enum pulseox_state {
 
 static const int DC_WINDOW_SIZE = 50;
 static const int MAX_CALIBRATION_ITERATIONS = 10;
-static const int MEASUREMENT_WINDOW_SIZE = 1000;
+static const int MEASUREMENT_WINDOW_SIZE = 100;
 
 class PulseOx: public ScreenElement {
 private:
-    Vector<uint32_t> red_signal;
-    Vector<uint32_t> ir_signal;
+    CircleBuffer<int> red_signal;
+    CircleBuffer<int> ir_signal;
     LargeNumberView* numview;
+    SignalTrace* signalTrace;
     SPI_Interface* SPI;
-    Pin_Num cs, rst, adc_rdy;
+    Pin_Num cs, rst, adc_rdy, adc_pdn;
     pulseox_state state = off;
     float dc_goal = 0.36; // 30% of ADC full-scale voltage (1.2V)
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
     uint32_t current_led_i_value = 0x1A;
+    uint32_t confirmed_current_value;
 
     /*
      * writeData() - Put 24-bit data into a target register
      */
     void writeData(uint8_t target_register, uint32_t data) {
+        digitalWrite(cs, LOW);
         SPI->transfer(target_register);
         uint8_t first_transfer = (uint8_t) ((data >> 16) & 0xFF);
         uint8_t second_transfer = (uint8_t) ((data >> 8) & 0xFF);
@@ -100,6 +105,7 @@ private:
         SPI->transfer(first_transfer); /* Bits 23-16 */
         SPI->transfer(second_transfer); /* Bits 15-8 */
         SPI->transfer(third_transfer); /* Bits 7-0 */
+        digitalWrite(cs, HIGH);
     }
 
     /*
@@ -107,23 +113,28 @@ private:
      */
     uint32_t readData(uint8_t target_register) {
         writeData(CONTROL0, 0x00000001);
+        digitalWrite(cs, LOW);
         SPI->transfer(target_register);
         // Send dummy data to read the next 24 bits
         uint32_t first_transfer = SPI->transfer(0x00);
         uint32_t second_transfer = SPI->transfer(0x00);
         uint32_t third_transfer = SPI->transfer(0x00);
         uint32_t register_data = (first_transfer << 16) + (second_transfer << 8) + third_transfer;
+        digitalWrite(cs, HIGH);
+        writeData(CONTROL0, 0x00000000);
         return register_data;
     }
 
     uint32_t getLED1Data() {
         while (!digitalRead(adc_rdy)) {}
         return readData(LED1_ALED1VAL);
+        /* return readData(LED1VAL); */
     }
 
     uint32_t getLED2Data() {
         while (!digitalRead(adc_rdy)) {}
         return readData(LED2_ALED2VAL);
+        /* return readData(LED2VAL); */
     }
 
     uint32_t getSignalDC() {
@@ -169,10 +180,11 @@ private:
      *       ------------------  *  50 mA = current
      *            256
      */
-    void setLEDCurrent(uint8_t value) {
+    uint32_t setLEDCurrent(uint8_t value) {
         uint32_t both_leds = (((uint32_t)value) << 8) + value;
         writeData(LEDCNTRL, both_leds);
         current_led_i_value = value;
+        return readData(LEDCNTRL);
     }
 
     /*
@@ -181,6 +193,12 @@ private:
      * Assumes a pulse repetition frequency of 500 Hz
      */
     void configurePulseTimings(void) {
+        writeData(CONTROL0, 0x00000000);
+        setRfValue(0x06);
+        confirmed_current_value = setLEDCurrent(0x1A);
+        writeData(CONTROL2, 0x002000);
+        /* writeData(CONTROL1, 0x0102); // Enable timers */
+        writeData(CONTROL1, 0x010707); // Enable timers
         writeData(LED2STC, 6050);
         writeData(LED2ENDC, 7998);
         writeData(LED2LEDSTC, 6000);
@@ -210,41 +228,81 @@ private:
         writeData(ADCRSTSTCT3, 6000);
         writeData(ADCRSTENDCT3, 6003);
         writeData(PRPCOUNT, 7999);
-        writeData(CONTROL1, 0x0102); // Enable timers
     }
 
 public:
-   
-    PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num rst, Pin_Num adc_rdy, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI) {
+    PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num rst, Pin_Num adc_rdy, Pin_Num adc_pdn, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI), cs(cs), rst(rst), adc_rdy(adc_rdy), adc_pdn(adc_pdn) {
         // Must perform software reset (SW_RST)
+        this->cs = cs;
+        this->rst = rst;
+        this->adc_rdy = PA8; // Fixed pin for now, will generalize later.
+        this->adc_pdn = adc_pdn;
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
 		configure_GPIO(rst, NO_PU_PD, OUTPUT);
-		configure_GPIO(adc_rdy, DOWN, INPUT);
+		configure_GPIO(adc_pdn, NO_PU_PD, OUTPUT);
         digitalWrite(cs, HIGH);
-        digitalWrite(rst, LOW);
-        delay(10000);
+        digitalWrite(adc_pdn, LOW);
+    }
+
+    void enable() {
+        digitalWrite(adc_pdn, HIGH);
+        delay(100000);
         digitalWrite(rst, HIGH);
-        delay(10000);
+        delay(100000);
+        digitalWrite(rst, LOW);
+        delay(100000);
+        digitalWrite(rst, HIGH);
 		SPI->begin();
         writeData(CONTROL0, SW_RST);
         configurePulseTimings();
-        setRfValue(0x06);
-        /* setLEDCurrent(0x1A); */
-        setLEDCurrent(255);
-        delay(1000);
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        init_sampler();
+        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,150000,&red_signal,tft);
         numview = new LargeNumberView(row,column,len,width,RA8875_BLACK,RA8875_GREEN,true,98, tft);
         state = idle;
     }
 
     void draw() {
-        numview->draw();
+        /* numview->draw(); */
+        signalTrace->draw();
         // TODO: interface stuff
     }
 
+    void init_sampler(void) {
+        configure_GPIO(adc_rdy, UP, INPUT);
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+        SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource8);
+
+        EXTI_InitTypeDef EXTI_InitStruct;
+
+        EXTI_InitStruct.EXTI_Line = EXTI_Line8;
+        EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+        EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+        EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+        EXTI_Init(&EXTI_InitStruct);
+
+        NVIC_InitTypeDef NVIC_InitStruct;
+
+        NVIC_InitStruct.NVIC_IRQChannel = EXTI9_5_IRQn;
+        // TODO: come back to these priority levels.
+        NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
+        NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
+        NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+        NVIC_Init(&NVIC_InitStruct);
+    }
+
+    void sample(void) {
+        int red_val = getLED2Data();
+        red_signal.add(red_val);
+        c.print(red_val);
+        c.print("\n");
+        ir_signal.add(getLED1Data());
+    }
+
     void update() {
-        numview->update();
+        /* numview->update(); */
+        signalTrace->update();
         switch(state) {
             case off:
                 break;
@@ -252,24 +310,31 @@ public:
             {
                 // TODO: handle state when no probe is connected
                 //       or no finger is in the probe
-                int current_value = readData(CONTROL1);
+                /* int cv = readData(LED1_ALED1VAL); */
+                /* state = measuring; */
                 break;
             }
             case calibrating:
             {
+                c.print("Beginning calibration");
                 bool success = calibrate();
+                c.print("Calibration complete!");
                 if (success) {
                     state = measuring;
                 } else {
                     // TODO: error handling for calibration
+                    c.print("Calibration failed :(");
                     state = idle;
                 }
                 break;
             }
             case measuring:
             {
-                int new_measurement = get_measurement();
-                numview->changeNumber(new_measurement);
+                c.print("Calibration succeeded! :D");
+                /* int new_measurement = get_measurement(); */
+                /* numview->changeNumber(new_measurement); */
+                /* c.print("Pulseox value is: "); */
+                /* c.print(new_measurement); */
                 break;
             }
         }
@@ -319,6 +384,26 @@ public:
         }
     }
 
+    double mean(Vector<uint32_t> vals) {
+        int running_sum = 0;
+        int len = vals.size();
+        for (int i = 0; i < len; i++) {
+            running_sum += vals[i];
+        }
+        return ((double) running_sum) / ((double) len);
+    }
+
+    double ac_rms(Vector<int> vals, uint32_t mean) {
+        int len = vals.size();
+        int rms_sum = 0;
+        for (int i = 0; i < len; i ++) {
+            int ac_value = vals[i] - mean;
+            rms_sum += (ac_value*ac_value);
+        }
+        // TODO: See if this is too slow of an operation!
+        return sqrt(rms_sum / len);
+    }
+
     /*
      * get_measurement() -- Trigger an SpO2 calculation
      *
@@ -327,16 +412,23 @@ public:
      * TODO: The measurement process can't hang the whole system. Needs to run
      *       in the background and play nice.
      */
-    int get_measurement() {
-        red_signal.empty();
-        ir_signal.empty();
-        /* begin sampling */
-        for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) {
-            red_signal.push_back(getLED1Data());
-            ir_signal.push_back(getLED2Data());
-        }
-        /* perform calculation */
-    }
+    /* int get_measurement() { */
+    /*     red_signal.empty(); */
+    /*     ir_signal.empty(); */
+    /*     /1* begin sampling *1/ */
+    /*     for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) { */
+    /*         red_signal.push_back(getLED1Data()); */
+    /*         ir_signal.push_back(getLED2Data()); */
+    /*     } */
+    /*     /1* perform calculation *1/ */
+    /*     double dc_red = mean(red_signal); */
+    /*     double dc_ir = mean(ir_signal); */
+    /*     double ac_rms_red = ac_rms(red_signal, dc_red); */
+    /*     double ac_rms_ir = ac_rms(ir_signal, dc_ir); */
+    /*     double lambda = (ac_rms_red * dc_ir) / (ac_rms_ir * dc_red); */
+    /*     /1* return lambda; *1/ */
+    /*     return 110 - 25*(lambda); */
+    /* } */
 
 
 };

@@ -60,19 +60,24 @@ public:
 		SPI_InitTypeDef SPI_InitStruct;
 
 		// Initialize alternate function pins A5, A6, and A7
-		configure_GPIO(PA5, NO_PU_PD, ALT); 
-		configure_GPIO(PA6, NO_PU_PD, ALT); 
-		configure_GPIO(PA7, NO_PU_PD, ALT); 
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_SPI1); // SCLK
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
-
 		switch(this->SPIc){
 			case spi_c1:
 				RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+                configure_GPIO(PA5, NO_PU_PD, ALT); 
+                configure_GPIO(PA6, NO_PU_PD, ALT); 
+                configure_GPIO(PA7, NO_PU_PD, ALT); 
+                GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_SPI1); // SCLK
+                GPIO_PinAFConfig(GPIOA, GPIO_PinSource6, GPIO_AF_SPI1); // MISO
+                GPIO_PinAFConfig(GPIOA, GPIO_PinSource7, GPIO_AF_SPI1); // MOSI
 				break;
 			case spi_c2:
 				RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+                configure_GPIO(PC7, NO_PU_PD, ALT); 
+                configure_GPIO(PB14, NO_PU_PD, ALT); 
+                configure_GPIO(PB15, NO_PU_PD, ALT); 
+                GPIO_PinAFConfig(GPIOC, GPIO_PinSource7, GPIO_AF_SPI2); // SCLK
+                GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_SPI2); // MISO
+                GPIO_PinAFConfig(GPIOB, GPIO_PinSource15, GPIO_AF_SPI2); // MOSI
 				break;
 			case spi_c3:
 				RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);

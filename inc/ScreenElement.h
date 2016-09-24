@@ -210,12 +210,12 @@ public:
     }
 
     void update(void) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
-		int new_val = displayData->newest();
-		if (!prim) { 
-			__enable_irq();
-		}
+		/* uint32_t prim = __get_PRIMASK(); */
+		/* __disable_irq(); */
+		int new_val = (*displayData)[0];
+		/* if (!prim) { */ 
+		/* 	__enable_irq(); */
+		/* } */
 		int threshold = 5;
 		int display = new_val * real_len;
 		display /= max_signal_value;

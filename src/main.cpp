@@ -1,7 +1,7 @@
 #include "System.h"
 #include "Display.h"
 
-#include "Interface.h"
+#include "interface.h"
 #include "Signals.h"
 
 const int SHORT_DELAY = 1000;
@@ -14,9 +14,19 @@ Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 		int val = ecg.read();
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	}
+}
+
+extern "C" void EXTI9_5_IRQHandler(void) {
+    if (EXTI_GetITStatus(EXTI_Line8) != RESET) {
+        /* GPIO_SetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14); */
+        spo2.sample();
+        /* GPIO_ResetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14); */
+        /* c.print("Interrupt"); */
+        EXTI_ClearITPendingBit(EXTI_Line8);
+    }
 }
 
 void MainScreenInit(void){
@@ -31,7 +41,19 @@ void SettingsScreenInit(void){
   settingsScreen.initialDraw();
 }
 
+void initDevelopmentHeartbeat(void) {
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
+    GPIO_InitTypeDef GPIO_InitDef;
+    GPIO_InitDef.GPIO_Pin = GPIO_Pin_13 | GPIO_Pin_14;
+    GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitDef.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOG, &GPIO_InitDef);
+}
+
 void systemInit() {
+    /* initDevelopmentHeartbeat(); */
 	adcInit();
   	tft.startup();
     composeMainScreen(mainScreen);
