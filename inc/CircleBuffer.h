@@ -33,6 +33,21 @@ public:
 		end = 1;
 	};
 
+	CircleBuffer(const CircleBuffer<T>& that) {
+        T* newdata =  new T[that.length];
+		this->length = that.length;
+		this->data = newdata;
+		for (int i = 0; i < this->length; i ++) {
+		    this->data[i] = that.data[i];
+		}
+		this->next = that.next;
+		this->end = that.end;
+	};
+
+    int size(void) {
+        return this->length;
+    }
+
     void resize(int new_len) {
         if (new_len <= this->length) { return; }
         T* new_data = new T[new_len];
@@ -44,12 +59,14 @@ public:
         data = new_data;
     };
 
-	void add(const T& payload) {
+	bool add(const T& payload) {
 		data[next] = payload;
 		next = end;
 		end = mod((end + 1), length);
+        if (end == 0) { return true; } // True if circling back
+        return false;
 	};
-	
+
 	T& operator[](const int k) {
 		if (length <= k) {
           __attribute__((unused)) int* p = 0;
