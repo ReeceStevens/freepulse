@@ -76,22 +76,105 @@ enum pulseox_state {
 
 static const int DC_WINDOW_SIZE = 50;
 static const int MAX_CALIBRATION_ITERATIONS = 10;
-static const int MEASUREMENT_WINDOW_SIZE = 100;
+static const int MEASUREMENT_WINDOW_SIZE = 3000;
 
 class PulseOx: public ScreenElement {
 private:
     CircleBuffer<int> red_signal;
     CircleBuffer<int> ir_signal;
+    CircleBuffer<int> display_signal; // Transmittace graph on the screen
     LargeNumberView* numview;
     SignalTrace* signalTrace;
     SPI_Interface* SPI;
     Pin_Num cs, rst, adc_rdy, adc_pdn;
     pulseox_state state = off;
+    bool ready_for_measurement = false;
+    bool ready_to_sample = true;
     float dc_goal = 0.36; // 30% of ADC full-scale voltage (1.2V)
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
     uint32_t current_led_i_value = 0x1A;
     uint32_t confirmed_current_value;
+    /*
+     * 10th order IIR Butterworth filter
+     * fc1 = 0.5 Hz
+     * fc2 = 3 Hz
+     */
+	double sos_filter[5][6] = {
+		{1, 0, -1, 1, -1.9822, 0.9836},
+		{1, 0, -1, 1, -1.9971, 0.9971},
+		{1, 0, -1, 1, -1.9903, 0.9904},
+		{1, 0, -1, 1, -1.9587, 0.9597},
+		{1, 0, -1, 1, -1.9688, 0.9691},
+	};
+
+	double gain[5] = {0.0156, 0.0156, 0.0155, 0.0155, 0.0155};
+
+    /*
+     * 10th order IIR Butterworth filter
+     * fc1 = 1 Hz
+     * fc2 = 4 Hz
+     */
+	/* double sos_filter[5][6] = { */
+	/* 	{1, 0, -1, 1, -1.9793, 0.9817}, */
+	/* 	{1, 0, -1, 1, -1.9950, 0.9952}, */
+	/* 	{1, 0, -1, 1, -1.9547, 0.9563}, */
+	/* 	{1, 0, -1, 1, -1.9835, 0.9838}, */
+	/* 	{1, 0, -1, 1, -1.9624, 0.9630}, */
+	/* }; */
+
+	/* double gain[5] = {0.0187, 0.0187, 0.0186, 0.0186, 0.0185}; */
+
+    /*
+     * 10th order IIR Butterworth filter
+     * fc1 = 0.1 Hz
+     * fc2 = 4 Hz
+     */
+	/* double sos_filter[5][6] = { */
+	/* 	{1, 0, -1, 1, -1.9684, 0.9709}, */
+	/* 	{1, 0, -1, 1, -1.9993, 0.9993}, */
+	/* 	{1, 0, -1, 1, -1.9979, 0.9979}, */
+	/* 	{1, 0, -1, 1, -1.9234, 0.9257}, */
+	/* 	{1, 0, -1, 1, -1.9521, 0.9522}, */
+	/* }; */
+
+	/* double gain[5] = {0.0243, 0.0243, 0.0240, 0.0240, 0.0239}; */
+
+	double xs[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+	double ws[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+
+	double filter(int x) {
+		xs[0][0] = (double) x;
+		double y;
+		for (int i = 0; i < 5; i ++){
+			xs[i][0] *= gain[i];
+			// Apply SOS
+			ws[i][0] = xs[i][0] - sos_filter[i][4]*ws[i][1] - sos_filter[i][5]*ws[i][2];
+			y = sos_filter[i][0]*ws[i][0] + sos_filter[i][1]*ws[i][1] + sos_filter[i][2]*ws[i][2]; 
+			// Shift coefficients
+			xs[i][2] = xs[i][1];
+			xs[i][1] = xs[i][0];
+			ws[i][2] = ws[i][1];
+			ws[i][1] = ws[i][0];
+			// Carry over to next section
+			if (i != 4) {
+				xs[i+1][0] = y;	
+			}
+		}
+        return y;
+	}
 
     /*
      * writeData() - Put 24-bit data into a target register
@@ -126,13 +209,13 @@ private:
     }
 
     uint32_t getLED1Data() {
-        while (!digitalRead(adc_rdy)) {}
+        /* while (!digitalRead(adc_rdy)) {} */
         return readData(LED1_ALED1VAL);
         /* return readData(LED1VAL); */
     }
 
     uint32_t getLED2Data() {
-        while (!digitalRead(adc_rdy)) {}
+        /* while (!digitalRead(adc_rdy)) {} */
         return readData(LED2_ALED2VAL);
         /* return readData(LED2VAL); */
     }
@@ -240,6 +323,7 @@ public:
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
 		configure_GPIO(rst, NO_PU_PD, OUTPUT);
 		configure_GPIO(adc_pdn, NO_PU_PD, OUTPUT);
+        configure_GPIO(PA13, NO_PU_PD, OUTPUT);
         digitalWrite(cs, HIGH);
         digitalWrite(adc_pdn, LOW);
     }
@@ -297,11 +381,16 @@ public:
     }
 
     void sample(void) {
-        int red_val = getLED2Data();
-        red_signal.add(red_val);
-        c.print(red_val);
-        c.print("\n");
-        ir_signal.add(getLED1Data());
+        digitalWrite(PA13, HIGH);
+        int ir_data = getLED1Data();
+        int display_val = filter(ir_data) + 300;
+        display_signal.add(display_val);
+        red_signal.add(getLED2Data());
+        bool ready = ir_signal.add(ir_data);
+        if (ready) { ready_for_measurement = true; }
+        /* c.print(ir_val); */
+        /* c.print("\n"); */
+        digitalWrite(PA13, LOW);
     }
 
     void update() {
@@ -317,25 +406,30 @@ public:
             }
             case calibrating:
             {
-                c.print("Beginning calibration");
+                /* TODO: This case is currently being skipped. 
+                 * Determine if it is required, and if so, how
+                 * does that affect display range? */
+                c.print("Beginning calibration\n");
                 bool success = calibrate();
-                c.print("Calibration complete!");
+                c.print("Calibration complete!\n");
                 if (success) {
                     state = measuring;
                 } else {
                     // TODO: error handling for calibration
-                    c.print("Calibration failed :(");
+                    c.print("Calibration failed :(\n");
                     state = idle;
                 }
                 break;
             }
             case measuring:
             {
-                c.print("Calibration succeeded! :D");
-                /* int new_measurement = get_measurement(); */
-                /* numview->changeNumber(new_measurement); */
-                /* c.print("Pulseox value is: "); */
-                /* c.print(new_measurement); */
+                int new_measurement = get_measurement();
+                numview->changeNumber(new_measurement);
+                c.print("Pulseox value is: ");
+                c.print(new_measurement);
+                c.print("\n");
+                ready_for_measurement = false;
+                state = idle;
                 break;
             }
         }
@@ -385,7 +479,7 @@ public:
         }
     }
 
-    double mean(Vector<uint32_t> vals) {
+    double mean(CircleBuffer<int> vals) {
         int running_sum = 0;
         int len = vals.size();
         for (int i = 0; i < len; i++) {
@@ -394,42 +488,44 @@ public:
         return ((double) running_sum) / ((double) len);
     }
 
-    double ac_rms(Vector<int> vals, uint32_t mean) {
+    double ac_rms(CircleBuffer<int> vals, double mean) {
         int len = vals.size();
-        int rms_sum = 0;
+        double rms_sum = 0;
         for (int i = 0; i < len; i ++) {
-            int ac_value = vals[i] - mean;
+            double ac_value = vals[i] - mean;
             rms_sum += (ac_value*ac_value);
         }
         // TODO: See if this is too slow of an operation!
-        return sqrt(rms_sum / len);
+        return sqrt((double) rms_sum / (double) len);
     }
 
     /*
      * get_measurement() -- Trigger an SpO2 calculation
-     *
-     * TODO: measurements should be done on a timer interval, not in a loop.
-     *
-     * TODO: The measurement process can't hang the whole system. Needs to run
-     *       in the background and play nice.
      */
-    /* int get_measurement() { */
-    /*     red_signal.empty(); */
-    /*     ir_signal.empty(); */
-    /*     /1* begin sampling *1/ */
-    /*     for (int i = 0; i < MEASUREMENT_WINDOW_SIZE; i ++) { */
-    /*         red_signal.push_back(getLED1Data()); */
-    /*         ir_signal.push_back(getLED2Data()); */
-    /*     } */
-    /*     /1* perform calculation *1/ */
-    /*     double dc_red = mean(red_signal); */
-    /*     double dc_ir = mean(ir_signal); */
-    /*     double ac_rms_red = ac_rms(red_signal, dc_red); */
-    /*     double ac_rms_ir = ac_rms(ir_signal, dc_ir); */
-    /*     double lambda = (ac_rms_red * dc_ir) / (ac_rms_ir * dc_red); */
-    /*     /1* return lambda; *1/ */
-    /*     return 110 - 25*(lambda); */
-    /* } */
+    int get_measurement() {
+        /* perform calculation */
+        ready_to_sample = false;
+        c.print("Beginning Pulse Ox Calculation\n");
+        double dc_red = mean(red_signal);
+        c.print("Red DC: ");
+        c.print(dc_red);
+        c.print("\n");
+        double dc_ir = mean(ir_signal);
+        c.print("IR DC: ");
+        c.print(dc_ir);
+        c.print("\n");
+        double ac_rms_red = ac_rms(red_signal, dc_red);
+        c.print("Red AC: ");
+        c.print(ac_rms_red);
+        c.print("\n");
+        double ac_rms_ir = ac_rms(ir_signal, dc_ir);
+        c.print("IR AC: ");
+        c.print(ac_rms_ir);
+        c.print("\n");
+        double lambda = ((ac_rms_red * dc_ir) / (dc_red)) / (ac_rms_ir);
+        ready_to_sample = true;
+        return 110 - 25*(lambda);
+    }
 
 
 };
