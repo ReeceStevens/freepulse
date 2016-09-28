@@ -257,16 +257,16 @@ public:
         configurePulseTimings();
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        display_signal.resize(MEASUREMENT_WINDOW_SIZE);
         init_sampler();
-        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,150000,&red_signal,tft);
-        numview = new LargeNumberView(row,column,len,width,RA8875_BLACK,RA8875_GREEN,true,98, tft);
+        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,700,&display_signal,tft);
+        numview = new LargeNumberView(row + 1,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
         state = idle;
     }
 
     void draw() {
-        /* numview->draw(); */
+        numview->draw();
         signalTrace->draw();
-        // TODO: interface stuff
     }
 
     void init_sampler(void) {
@@ -292,6 +292,10 @@ public:
         NVIC_Init(&NVIC_InitStruct);
     }
 
+    bool can_sample(void) {
+        return this->ready_to_sample;
+    }
+
     void sample(void) {
         int red_val = getLED2Data();
         red_signal.add(red_val);
@@ -301,17 +305,14 @@ public:
     }
 
     void update() {
-        /* numview->update(); */
+        numview->update();
         signalTrace->update();
         switch(state) {
             case off:
                 break;
             case idle:
             {
-                // TODO: handle state when no probe is connected
-                //       or no finger is in the probe
-                /* int cv = readData(LED1_ALED1VAL); */
-                /* state = measuring; */
+                if (ready_for_measurement) { state = measuring; }
                 break;
             }
             case calibrating:

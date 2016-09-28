@@ -22,7 +22,7 @@ extern "C" void TIM3_IRQHandler(void) {
 extern "C" void EXTI9_5_IRQHandler(void) {
     if (EXTI_GetITStatus(EXTI_Line8) != RESET) {
         /* GPIO_SetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14); */
-        spo2.sample();
+        if (spo2.can_sample()) { spo2.sample(); }
         /* GPIO_ResetBits(GPIOG, GPIO_Pin_13 | GPIO_Pin_14); */
         /* c.print("Interrupt"); */
         EXTI_ClearITPendingBit(EXTI_Line8);
