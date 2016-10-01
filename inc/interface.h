@@ -1,7 +1,7 @@
 #ifndef __interface_h__
 #define __interface_h__
 
-#include "Screen.h"
+#include "screen.h"
 #include "ScreenElement.h"
 
 #define DISPLAY_CS PC4

@@ -1,4 +1,4 @@
-#include "Interface.h"
+#include "interface.h"
 #include "ecg.h"
 #include "nibp.h"
 
