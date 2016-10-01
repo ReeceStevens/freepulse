@@ -12,10 +12,10 @@
 
 extern Console c;
 
-const int BIG_DELAY = 500;
+const int BIG_DELAY = 1000;
 
 enum NIBPState {
-    inflate, measure, done, start, error, na 
+    inflate, measure, calculate, done, start, error, na
 };
 
 void noop_onclick(void) {}
@@ -54,6 +54,8 @@ private:
     TextBox* title;
     TextBox* value;
     Button* button;
+    LargeNumberView* systolic;
+    LargeNumberView* diastolic;
 	TimerChannel timx;
 
 
@@ -221,7 +223,9 @@ public:
         sandbox->add(title);
         sandbox->add(value);
         sandbox->add(button);
-        updateInstructions();
+        systolic = new LargeNumberView(row, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
+        diastolic = new LargeNumberView(row + 2, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
+
 	}
 
 	void enable() {
@@ -246,11 +250,15 @@ public:
 		draw_border();
         updateInstructions();
         sandbox->draw();
+        systolic->draw();
+        diastolic->draw();
     }
 
     void update(void) {
         updateInstructions();
         sandbox->update();
+        systolic->update();
+        diastolic->update();
     }
 
 	int read(void) {
