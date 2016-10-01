@@ -2,7 +2,7 @@
 #include "Display.h"
 
 Console c(USART2, 115200);
-#include "Interface.h"
+#include "interface.h"
 #include "Signals.h"
 
 const int SHORT_DELAY = 1000;
