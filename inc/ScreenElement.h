@@ -156,6 +156,7 @@ private:
     int background_color;
     int text_color;
 	int value;
+    bool has_updated = false;
 
 public:
 	bool visible;
@@ -165,14 +166,30 @@ public:
 		int first_digit = value / 100;
 		if (first_digit != 0) {
 			tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
-		}
+		} else {
+            tft->fillRect(coord_x, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
+        }
 		int second_digit = value / 10 - first_digit * 10;
-		if (second_digit != 0) {
+        if ((first_digit != 0) || (second_digit != 0)) {
 			tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
-		}
+        } else {
+            tft->fillRect(coord_x+tft->horizontal_scale, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
+        }
 		int third_digit = value - first_digit * 100 - second_digit * 10;
 		tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
 	}
+
+    void update(void) {
+        if (has_updated) {
+            draw();
+            has_updated = false;
+        }
+    }
+
+    void changeNumber(int new_value) {
+        value = new_value;
+        has_updated = true;
+    }
 
 };
 
