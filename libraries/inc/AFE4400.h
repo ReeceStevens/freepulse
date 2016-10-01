@@ -436,7 +436,7 @@ public:
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
         display_signal.resize(MEASUREMENT_WINDOW_SIZE);
         init_sampler();
-        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,1000,&display_signal,tft);
+        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,2000,&display_signal,tft);
         numview = new LargeNumberView(row + 1,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
         state = idle;
     }
