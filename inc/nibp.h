@@ -27,7 +27,7 @@ double rms(int* vals, int window) {
         int x = vals[i];
         running_sum += x*x;
     }
-    running_sum /= window;
+    running_sum = ((double) running_sum) / ((double) window);
     return sqrt(running_sum);
 }
 
@@ -48,8 +48,9 @@ private:
 	int background_color;
 	int sampling_rate;
     int goal_pressure;
-    int rms_window_size = 500;
-    Vector<double> pulse_pressures;
+    int rms_window_size = 1000;
+    Vector<double> pulse_rms_measurements;
+    Vector<int> pressure_measurements;
     TextBox* title;
     TextBox* value;
     Button* button;
@@ -153,9 +154,42 @@ private:
      */
     int calibrate(double input_value) {
         double m = 0.4342;
-        double b = -750.6;
+        double b = -745.6;
         return (int) (m*input_value + b);
     };
+
+    int max_idx(Vector<double> a) {
+        int max = 0;
+        double max_val = a[0];
+        for (int i = 1; i < a.size(); i++) {
+            if (a[i] > max_val) {
+                max = i;
+                max_val = a[i];
+            }
+        }
+        return max;
+    }
+
+    double max(Vector<double> a) {
+        int max = a[0];
+        for (int i = 1; i < a.size(); i++) {
+            if (a[i] > max) {
+                max = a[i];
+            }
+        }
+        return max;
+    }
+
+    double min(Vector<double> a) {
+        int min = a[0];
+        for (int i = 1; i < a.size(); i++) {
+            if (a[i] < min) {
+                min = a[i];
+            }
+        }
+        return min;
+
+    }
 
 public:	
 	int last_val = 0;
@@ -168,10 +202,11 @@ public:
 				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), 
                 trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate),
                 timx(timx) {
-		fifo_size = real_width;
+		fifo_size = 1000;
         pressure_fifo.resize(fifo_size);
         pulse_fifo.resize(fifo_size);
-        pulse_pressures.resize(20);
+        pulse_rms_measurements.resize(20);
+        pressure_measurements.resize(20);
 		avg_size = 10;
 		avg_cursor = 0;
 		display_cursor = 0;
@@ -209,6 +244,7 @@ public:
     void draw(void){
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
 		draw_border();
+        updateInstructions();
         sandbox->draw();
     }
 
@@ -300,7 +336,7 @@ public:
                         state = measure;
                     }
                     if (button->isTapped()) {
-                        state = start;         
+                        state = start;
                         delay(100000);
                         tft->clearTouchEvents();
                     }
@@ -318,7 +354,7 @@ public:
                     prev_state = state;
                     title->changeText("Measuring...");
                     button->changeText("Cancel");
-                    pulse_pressures.empty();
+                    pulse_rms_measurements.empty();
                 }
                 else {
                     int avg_pressure = getRecentAvg(5);
@@ -328,12 +364,12 @@ public:
                         // and perform calculations.
                         // For now, print out the array.
                         c.print("rms_vals = [");
-                        for (int i = 0; i < pulse_pressures.size(); i ++) {
-                            c.print(pulse_pressures[i]);
+                        for (int i = 0; i < pulse_rms_measurements.size(); i ++) {
+                            c.print(pulse_rms_measurements[i]);
                             c.print(", ");
                         }
                         c.print("];\n");
-                        /* state = done; */
+                        state = calculate;
                     }
                     if (avg_pressure < goal_pressure) {
                         if (delay_counter < BIG_DELAY) {
@@ -348,11 +384,75 @@ public:
                         // 1. Get the RMS value
                         double rms_val = getPulsePressureRMS(rms_window_size);
                         // 2. Store it in the pulse pressure array
-                        pulse_pressures.push_back(rms_val);
+                        pulse_rms_measurements.push_back(rms_val);
+                        pressure_measurements.push_back(avg_pressure);
                         // 3. Decrement the goal pressure by 10 mmHg.
                         goal_pressure -= 10;
+                        /* goal_pressure -= 5; */
                     }
                 }
+                break;
+            }
+            case calculate:
+            {
+                c.print("rms_vals = [");
+                for (int i = 0; i < pulse_rms_measurements.size(); i ++) {
+                    c.print(pulse_rms_measurements[i]);
+                    c.print(", ");
+                }
+                c.print("];\n");
+                int rms_max_idx = max_idx(pulse_rms_measurements);
+                double rms_max = max(pulse_rms_measurements);
+                double rms_min = min(pulse_rms_measurements);
+                double goal_rms_dia = ((rms_max - rms_min) * 2 / 3) + rms_min;
+                double goal_rms_sys = ((rms_max - rms_min) / 3) + rms_min;
+                // Find diastolic 
+                // Start searching one after the MAP, and throw away the last measurement
+                int closest_pressure = -1;
+                int last_above = -1;
+                int first_below = -1;
+                for (int i = rms_max_idx + 1; i < pulse_rms_measurements.size() - 1; i ++) {
+                    if (closest_pressure == -1) {
+                        closest_pressure = pressure_measurements[i];
+                        if (closest_pressure >= goal_rms_dia) { last_above = i; }
+                        else { last_above = i - 1; }
+                    } else {
+                        double new_error = pulse_rms_measurements[i] - goal_rms_dia;
+                        if (new_error >= 0) { last_above = i; }
+                        else if (last_above == i - 1) {
+                            first_below = i;
+                            break;
+                        }
+                    }
+                }
+                int diastolic = (double) (pressure_measurements[last_above] - pressure_measurements[first_below]) * (goal_rms_dia - pulse_rms_measurements[first_below]) \
+                                    / (pulse_rms_measurements[last_above] - pulse_rms_measurements[first_below]) + pressure_measurements[first_below];
+                /* int diastolic = closest_pressure; */
+                // Find systolic
+                // Start searching one before the MAP
+                closest_pressure = -1;
+                last_above = -1;
+                first_below = -1;
+                for (int i = rms_max_idx - 1; i >= 0; i --) {
+                    if (closest_pressure == -1) {
+                        closest_pressure = pressure_measurements[i];
+                        if (closest_pressure >= goal_rms_sys) { last_above = closest_pressure; }
+                        else { last_above = i + 1; }
+                    } else {
+                        double new_error = pulse_rms_measurements[i] - goal_rms_sys;
+                        if (new_error >= 0) { last_above = i; }
+                        else if (last_above == i + 1) {
+                            first_below = i;
+                            break;
+                        }
+                    }
+                }
+                /* int systolic = closest_pressure; */
+                int systolic = (double) (pressure_measurements[last_above] - pressure_measurements[first_below]) * (goal_rms_sys - pulse_rms_measurements[first_below]) \
+                                    / (pulse_rms_measurements[last_above] - pulse_rms_measurements[first_below]) + pressure_measurements[first_below];
+                this->systolic->changeNumber(systolic);
+                this->diastolic->changeNumber(diastolic);
+                state = done;
                 break;
             }
             case done:
