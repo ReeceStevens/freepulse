@@ -71,7 +71,7 @@
 extern Console c;
 
 enum pulseox_state {
-    off, idle, calibrating, measuring
+    off, idle, calibrating, get_red, get_ir, get_spo2
 };
 
 static const int DC_WINDOW_SIZE = 50;
@@ -94,13 +94,19 @@ private:
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
     uint32_t current_led_i_value = 0x1A;
-    uint32_t confirmed_current_value;
+
+    double dc_red;
+    double dc_ir;
+    double ac_rms_red;
+    double ac_rms_ir;
+
     /*
+     * Display Data Filter
      * 10th order IIR Butterworth filter
      * fc1 = 0.5 Hz
      * fc2 = 3 Hz
      */
-	double sos_filter[5][6] = {
+	double display_sos_filter[5][6] = {
 		{1, 0, -1, 1, -1.9822, 0.9836},
 		{1, 0, -1, 1, -1.9971, 0.9971},
 		{1, 0, -1, 1, -1.9903, 0.9904},
@@ -108,14 +114,28 @@ private:
 		{1, 0, -1, 1, -1.9688, 0.9691},
 	};
 
-	double gain[5] = {0.0156, 0.0156, 0.0155, 0.0155, 0.0155};
+	double display_gain[5] = {0.0156, 0.0156, 0.0155, 0.0155, 0.0155};
 
+
+    /*
+     * Sampling Data Filter
+     *
+     */
+    double sampling_sos_filter[5][6] = {
+		{1, 2, 1, 1, -1.9461, 0.9615},
+		{1, 2, 1, 1, -1.8774, 0.8923},
+		{1, 2, 1, 1, -1.8227, 0.8372},
+		{1, 2, 1, 1, -1.7849, 0.7991},
+		{1, 2, 1, 1, -1.7657, 0.7797},
+    };
+
+	double sampling_gain[5] = {0.0039, 0.0037, 0.0036, 0.0035, 0.0035};
     /*
      * 10th order IIR Butterworth filter
      * fc1 = 1 Hz
      * fc2 = 4 Hz
      */
-	/* double sos_filter[5][6] = { */
+	/* double display_sos_filter[5][6] = { */
 	/* 	{1, 0, -1, 1, -1.9793, 0.9817}, */
 	/* 	{1, 0, -1, 1, -1.9950, 0.9952}, */
 	/* 	{1, 0, -1, 1, -1.9547, 0.9563}, */
@@ -123,14 +143,14 @@ private:
 	/* 	{1, 0, -1, 1, -1.9624, 0.9630}, */
 	/* }; */
 
-	/* double gain[5] = {0.0187, 0.0187, 0.0186, 0.0186, 0.0185}; */
+	/* double display_gain[5] = {0.0187, 0.0187, 0.0186, 0.0186, 0.0185}; */
 
     /*
      * 10th order IIR Butterworth filter
      * fc1 = 0.1 Hz
      * fc2 = 4 Hz
      */
-	/* double sos_filter[5][6] = { */
+	/* double display_sos_filter[5][6] = { */
 	/* 	{1, 0, -1, 1, -1.9684, 0.9709}, */
 	/* 	{1, 0, -1, 1, -1.9993, 0.9993}, */
 	/* 	{1, 0, -1, 1, -1.9979, 0.9979}, */
@@ -138,16 +158,15 @@ private:
 	/* 	{1, 0, -1, 1, -1.9521, 0.9522}, */
 	/* }; */
 
-	/* double gain[5] = {0.0243, 0.0243, 0.0240, 0.0240, 0.0239}; */
-
-	double xs[5][3] = {
+	/* double display_gain[5] = {0.0243, 0.0243, 0.0240, 0.0240, 0.0239}; */
+	double red_xs[5][3] = {
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0}
 	};
-	double ws[5][3] = {
+	double red_ws[5][3] = {
 		{0, 0, 0},
 		{0, 0, 0},
 		{0, 0, 0},
@@ -155,22 +174,94 @@ private:
 		{0, 0, 0}
 	};
 
-	double filter(int x) {
-		xs[0][0] = (double) x;
+	double filter_red(int x) {
+		red_xs[0][0] = (double) x;
 		double y;
 		for (int i = 0; i < 5; i ++){
-			xs[i][0] *= gain[i];
+			red_xs[i][0] *= sampling_gain[i];
 			// Apply SOS
-			ws[i][0] = xs[i][0] - sos_filter[i][4]*ws[i][1] - sos_filter[i][5]*ws[i][2];
-			y = sos_filter[i][0]*ws[i][0] + sos_filter[i][1]*ws[i][1] + sos_filter[i][2]*ws[i][2]; 
+			red_ws[i][0] = red_xs[i][0] - sampling_sos_filter[i][4]*red_ws[i][1] - sampling_sos_filter[i][5]*red_ws[i][2];
+			y = sampling_sos_filter[i][0]*red_ws[i][0] + sampling_sos_filter[i][1]*red_ws[i][1] + sampling_sos_filter[i][2]*red_ws[i][2]; 
 			// Shift coefficients
-			xs[i][2] = xs[i][1];
-			xs[i][1] = xs[i][0];
-			ws[i][2] = ws[i][1];
-			ws[i][1] = ws[i][0];
+			red_xs[i][2] = red_xs[i][1];
+			red_xs[i][1] = red_xs[i][0];
+			red_ws[i][2] = red_ws[i][1];
+			red_ws[i][1] = red_ws[i][0];
 			// Carry over to next section
 			if (i != 4) {
-				xs[i+1][0] = y;	
+				red_xs[i+1][0] = y;	
+			}
+		}
+        return y;
+	}
+
+	double ir_xs[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+	double ir_ws[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+
+	double filter_ir(int x) {
+		ir_xs[0][0] = (double) x;
+		double y;
+		for (int i = 0; i < 5; i ++){
+			ir_xs[i][0] *= sampling_gain[i];
+			// Apply SOS
+			ir_ws[i][0] = ir_xs[i][0] - sampling_sos_filter[i][4]*ir_ws[i][1] - sampling_sos_filter[i][5]*ir_ws[i][2];
+			y = sampling_sos_filter[i][0]*ir_ws[i][0] + sampling_sos_filter[i][1]*ir_ws[i][1] + sampling_sos_filter[i][2]*ir_ws[i][2]; 
+			// Shift coefficients
+			ir_xs[i][2] = ir_xs[i][1];
+			ir_xs[i][1] = ir_xs[i][0];
+			ir_ws[i][2] = ir_ws[i][1];
+			ir_ws[i][1] = ir_ws[i][0];
+			// Carry over to next section
+			if (i != 4) {
+				ir_xs[i+1][0] = y;	
+			}
+		}
+        return y;
+	}
+
+	double d_xs[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+	double d_ws[5][3] = {
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0},
+		{0, 0, 0}
+	};
+
+	double filter_display(int x) {
+		d_xs[0][0] = (double) x;
+		double y;
+		for (int i = 0; i < 5; i ++){
+			d_xs[i][0] *= display_gain[i];
+			// Apply SOS
+			d_ws[i][0] = d_xs[i][0] - display_sos_filter[i][4]*d_ws[i][1] - display_sos_filter[i][5]*d_ws[i][2];
+			y = display_sos_filter[i][0]*d_ws[i][0] + display_sos_filter[i][1]*d_ws[i][1] + display_sos_filter[i][2]*d_ws[i][2]; 
+			// Shift coefficients
+			d_xs[i][2] = d_xs[i][1];
+			d_xs[i][1] = d_xs[i][0];
+			d_ws[i][2] = d_ws[i][1];
+			d_ws[i][1] = d_ws[i][0];
+			// Carry over to next section
+			if (i != 4) {
+				d_xs[i+1][0] = y;	
 			}
 		}
         return y;
@@ -247,10 +338,11 @@ private:
      * TIA_AMB_GAIN: RF_LED[2:0] set to 110
      * (see p.64 in docs for all Rf options)
      */
-    void setRfValue(uint8_t value) {
+    void setCancellationFilters(uint16_t value) {
         uint32_t tia_settings = readData(TIA_AMB_GAIN);
         tia_settings &= ~(0x07);
-        tia_settings |= value;
+        /* tia_settings &= ~(0xFF); */
+        tia_settings |= (value | 0x4400);
         writeData(TIA_AMB_GAIN, tia_settings);
         current_rf_value = value;
     }
@@ -277,8 +369,9 @@ private:
      */
     void configurePulseTimings(void) {
         writeData(CONTROL0, 0x00000000);
-        setRfValue(0x06);
-        confirmed_current_value = setLEDCurrent(0x1A);
+        /* setCancellationFilters(0x06); */
+        setCancellationFilters(0x02);
+        setLEDCurrent(0x1A);
         writeData(CONTROL2, 0x002000);
         /* writeData(CONTROL1, 0x0102); // Enable timers */
         writeData(CONTROL1, 0x010707); // Enable timers
@@ -343,7 +436,7 @@ public:
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
         display_signal.resize(MEASUREMENT_WINDOW_SIZE);
         init_sampler();
-        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,700,&display_signal,tft);
+        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,1000,&display_signal,tft);
         numview = new LargeNumberView(row + 1,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
         state = idle;
     }
@@ -381,16 +474,12 @@ public:
     }
 
     void sample(void) {
-        digitalWrite(PA13, HIGH);
         int ir_data = getLED1Data();
-        int display_val = filter(ir_data) + 300;
+        int display_val = filter_display(ir_data) + 500;
         display_signal.add(display_val);
-        red_signal.add(getLED2Data());
-        bool ready = ir_signal.add(ir_data);
+        red_signal.add(filter_red(getLED2Data()));
+        bool ready = ir_signal.add(filter_ir(ir_data));
         if (ready) { ready_for_measurement = true; }
-        /* c.print(ir_val); */
-        /* c.print("\n"); */
-        digitalWrite(PA13, LOW);
     }
 
     void update() {
@@ -401,19 +490,18 @@ public:
                 break;
             case idle:
             {
-                if (ready_for_measurement) { state = measuring; }
+                if (ready_for_measurement) { state = calibrating; }
                 break;
             }
             case calibrating:
             {
-                /* TODO: This case is currently being skipped. 
-                 * Determine if it is required, and if so, how
-                 * does that affect display range? */
                 c.print("Beginning calibration\n");
+                ready_to_sample = false;
                 bool success = calibrate();
+                ready_to_sample = true;
                 c.print("Calibration complete!\n");
                 if (success) {
-                    state = measuring;
+                    state = get_red;
                 } else {
                     // TODO: error handling for calibration
                     c.print("Calibration failed :(\n");
@@ -421,9 +509,39 @@ public:
                 }
                 break;
             }
-            case measuring:
+            case get_red:
             {
-                int new_measurement = get_measurement();
+                ready_to_sample = false;
+                dc_red = mean(red_signal);
+                /* c.print("Red DC: "); */
+                /* c.print(dc_red); */
+                /* c.print("\n"); */
+                ac_rms_red = ac_rms(red_signal, dc_red);
+                /* c.print("Red AC: "); */
+                /* c.print(ac_rms_red); */
+                /* c.print("\n"); */
+                state = get_ir;
+                break;
+            }
+            case get_ir:
+            {
+                dc_ir = mean(ir_signal);
+                /* c.print("IR DC: "); */
+                /* c.print(dc_ir); */
+                /* c.print("\n"); */
+                ac_rms_ir = ac_rms(ir_signal, dc_ir);
+                /* c.print("IR AC: \n"); */
+                /* c.print(ac_rms_ir); */
+                /* c.print("\n"); */
+                ready_to_sample = true;
+                state = get_spo2;
+                break;
+            }
+            case get_spo2:
+            {
+                double lambda = (ac_rms_red / dc_red) / (ac_rms_ir / dc_ir);
+                int new_measurement = 107 - 25*(lambda);
+                if (new_measurement > 100) { new_measurement = 100; }
                 numview->changeNumber(new_measurement);
                 c.print("Pulseox value is: ");
                 c.print(new_measurement);
@@ -432,50 +550,6 @@ public:
                 state = idle;
                 break;
             }
-        }
-    }
-
-    /*
-     * calibrate() -- Calibrate the TIA gain and LED drive current
-     * before taking a measurement. Required to compensate for differing
-     * ambient light conditions, etc.
-     */
-    bool calibrate(){
-        // 1. Set R_f to 1MOhm
-        setRfValue(0x06);
-
-        // 2. Set LED drive current to 5mA
-        setLEDCurrent(0x1A);
-
-        int iter_count = 0;
-        while(1) {
-            float dc = mapValueToVoltage(getSignalDC());
-            if ((dc - dc_goal < 1e-3) || (dc_goal - dc < 1e-3)) {
-                return true;
-            }
-            else if (dc < dc_goal) {
-                // Increase LED current
-                if (current_led_i_value == 0xFF) {
-                    return false;
-                }
-                current_led_i_value += 2;
-                setLEDCurrent(current_led_i_value);
-            }
-            else {
-                // Reduce Rf (i.e. reduce TIA gain)
-                if (current_rf_value == 0) {
-                    return false;
-                }
-                else {
-                    current_rf_value -= 1;
-                    setRfValue(current_rf_value);
-                }
-            }
-            // Timeout if calibration isn't done in time.
-            if (iter_count > MAX_CALIBRATION_ITERATIONS) {
-                return false;
-            }
-            iter_count++;
         }
     }
 
@@ -500,31 +574,56 @@ public:
     }
 
     /*
-     * get_measurement() -- Trigger an SpO2 calculation
+     * calibrate() -- Calibrate the TIA display_gain and LED drive current
+     * before taking a measurement. Required to compensate for differing
+     * ambient light conditions, etc.
      */
-    int get_measurement() {
-        /* perform calculation */
-        ready_to_sample = false;
-        c.print("Beginning Pulse Ox Calculation\n");
-        double dc_red = mean(red_signal);
-        c.print("Red DC: ");
-        c.print(dc_red);
-        c.print("\n");
-        double dc_ir = mean(ir_signal);
-        c.print("IR DC: ");
-        c.print(dc_ir);
-        c.print("\n");
-        double ac_rms_red = ac_rms(red_signal, dc_red);
-        c.print("Red AC: ");
-        c.print(ac_rms_red);
-        c.print("\n");
-        double ac_rms_ir = ac_rms(ir_signal, dc_ir);
-        c.print("IR AC: ");
-        c.print(ac_rms_ir);
-        c.print("\n");
-        double lambda = ((ac_rms_red * dc_ir) / (dc_red)) / (ac_rms_ir);
-        ready_to_sample = true;
-        return 110 - 25*(lambda);
+    bool calibrate(){
+        // TODO: Preset values seem to perform pretty well. Do some more tests
+        // and make sure this is necessary. Try in different rooms, different
+        // temperatures, and different subjects
+
+        // Right now, this function isn't doing anything other than setting the
+        // initial cancellation and LED current settings b/c it's not measuring a
+        // new mean every time (sampling is disabled). IF calibration ends up being
+        // required, you'll need a better fix for this.
+
+        // 1. Set R_f to 1MOhm
+        setCancellationFilters(0x06);
+
+        // 2. Set LED drive current to 5mA
+        setLEDCurrent(0x1A);
+
+        int iter_count = 0;
+        while(1) {
+            float dc = mapValueToVoltage(mean(ir_signal));
+            if ((dc - dc_goal < 1e-3) || (dc_goal - dc < 1e-3)) {
+                return true;
+            }
+            else if (dc < dc_goal) {
+                // Increase LED current
+                if (current_led_i_value == 0xFF) {
+                    return false;
+                }
+                current_led_i_value += 2;
+                setLEDCurrent(current_led_i_value);
+            }
+            else {
+                // Reduce Rf (i.e. reduce TIA display_gain)
+                if (current_rf_value == 0) {
+                    return false;
+                }
+                else {
+                    current_rf_value -= 1;
+                    setCancellationFilters(current_rf_value);
+                }
+            }
+            // Timeout if calibration isn't done in time.
+            if (iter_count > MAX_CALIBRATION_ITERATIONS) {
+                return false;
+            }
+            iter_count++;
+        }
     }
 
 

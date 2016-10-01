@@ -166,11 +166,15 @@ public:
 		int first_digit = value / 100;
 		if (first_digit != 0) {
 			tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
-		}
+		} else {
+            tft->fillRect(coord_x, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
+        }
 		int second_digit = value / 10 - first_digit * 10;
-		if (second_digit != 0) {
+        if ((first_digit != 0) || (second_digit != 0)) {
 			tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
-		}
+        } else {
+            tft->fillRect(coord_x+tft->horizontal_scale, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
+        }
 		int third_digit = value - first_digit * 100 - second_digit * 10;
 		tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
 	}
@@ -211,12 +215,7 @@ public:
     }
 
     void update(void) {
-		/* uint32_t prim = __get_PRIMASK(); */
-		/* __disable_irq(); */
 		int new_val = ((*displayData)[0] - min_signal_value);
-		/* if (!prim) { */ 
-		/* 	__enable_irq(); */
-		/* } */
 		int threshold = 5;
 		int display = new_val * real_len;
 		display /= (max_signal_value - min_signal_value);
