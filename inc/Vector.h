@@ -3,6 +3,8 @@
 #ifndef _Vector_h
 #define _Vector_h 1
 
+#include <stdint.h>
+
 template<typename T>
 
 struct Vector {
@@ -184,6 +186,13 @@ public:
         } 
         data[length] = x;
         length += 1;
+    }
+
+    void empty() {
+        T* empty_data = new T[capacity];
+        delete [] data;
+        data = empty_data;
+        length = 0;
     }
 
 };

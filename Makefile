@@ -50,7 +50,7 @@ GTEST_ROOT = /home/reece/projects/freepulse/googletest/googletest
 TEST_ROOT  = ./tests
 TEST_DIRS  = $(INC_DIRS)
 TEST_DIRS += $(GTEST_ROOT)/include
-TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
+TEST_SRCS  = $(TEST_ROOT)/CircleBufferTest.cpp
 TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
 
 ######################################################################
