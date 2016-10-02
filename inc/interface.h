@@ -42,17 +42,24 @@ Button cancel_button = Button(5,9,2,2,RA8875_RED,"Cancel",
                         true,&tft,&cancelAlarmChanges);
 Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",
                         true,&tft,&restoreDefaultAlarms);
-TextBox title = TextBox(12,1,1,3,RA8875_BLACK,RA8875_WHITE,3,true,false,
-                        "FreePulse Patient Monitor v0.9", &tft);
+TextBox title = TextBox(9,10,3,4,RA8875_BLACK,RA8875_WHITE,3,true,false,
+                        "  FreePulse", &tft);
+TextBox version = TextBox(10,11,3,4,RA8875_BLACK,RA8875_WHITE,3,true,false,
+                        "   v0.9", &tft);
+
 TextBox hr_label = TextBox(1,10,4,3,RA8875_BLACK,RA8875_BLUE,2,true,
                             true,"BPM",&tft);
+TextBox spo2_label = TextBox(5,10,4,3,RA8875_BLACK,RA8875_GREEN,2,true,
+                            true,"SpO2",&tft);
 LargeNumberView heartrate = LargeNumberView(3,10,2,3,RA8875_BLACK,
                             RA8875_BLUE,true,60,&tft);
 
 void composeMainScreen(Screen& s) {
     s.add(&settings_button);
     s.add(&title);
+    s.add(&version);
     s.add(&hr_label);
+    s.add(&spo2_label);
     s.add(&heartrate);
     /* mainScreen.add(ecg.signalTrace); */
 }

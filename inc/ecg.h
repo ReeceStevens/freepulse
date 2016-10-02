@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "System.h"
 #include "CircleBuffer.h"
 #include "ScreenElement.h"
@@ -12,12 +13,9 @@
 class ECG : public ScreenElement {
 private:
 	int fifo_size;
-    int avg_size;
-    int avg_cursor;
 	int display_cursor;
 	Pin_Num pn;
 	CircleBuffer<int> fifo;
-    Vector<int> avg_queue;
 	int scaling_factor;
 	int trace_color;
 	int background_color;
@@ -78,14 +76,9 @@ public:
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
-        signalTrace = new SignalTrace(row,column,len,width,background_color,trace_color,max_signal_value,&fifo,tft);
+        signalTrace = new SignalTrace(row,column,len,width,background_color,trace_color,0,max_signal_value,&fifo,tft);
 		fifo_size = real_width;
-        fifo.resize(fifo_size);
-		avg_size = 10;
-		avg_cursor = 0;
-		display_cursor = 1;
-        avg_queue.resize(avg_size);
-        real_len -= 1; // So that boxes don't overwrite each other's outlines.
+		fifo.resize(fifo_size);
 		scaling_factor = real_len;
 		configure_GPIO(pn, NO_PU_PD, ANALOG);
 	}

@@ -14,8 +14,8 @@ Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 		int val = ecg.read();
+		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	}
 }
 
@@ -23,9 +23,14 @@ extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 		int val = nibp.read();
-        /* c.print(val); */
-        /* c.print("\n"); */
 	}
+}
+
+extern "C" void EXTI9_5_IRQHandler(void) {
+    if (EXTI_GetITStatus(EXTI_Line8) != RESET) {
+        if (spo2.can_sample()) { spo2.sample(); }
+        EXTI_ClearITPendingBit(EXTI_Line8);
+    }
 }
 
 void MainScreenInit(void){
@@ -40,7 +45,19 @@ void SettingsScreenInit(void){
   settingsScreen.initialDraw();
 }
 
+void initDevelopmentHeartbeat(void) {
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
+    GPIO_InitTypeDef GPIO_InitDef;
+    GPIO_InitDef.GPIO_Pin = GPIO_Pin_13 | GPIO_Pin_14;
+    GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitDef.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOG, &GPIO_InitDef);
+}
+
 void systemInit() {
+    /* initDevelopmentHeartbeat(); */
 	adcInit();
   	tft.startup();
     composeMainScreen(mainScreen);
@@ -53,9 +70,9 @@ int main(void)
 {
 	c.configure();
 	c.print("\n");
-	/* c.print("Starting FreePulse...\n"); */
+	c.print("Starting FreePulse...\n");
 	systemInit();
-	/* c.print("Welcome!\n"); */
+	c.print("Welcome!\n");
 	while (1) {
 		MainScreenInit();
 		delay(SHORT_DELAY);
@@ -76,5 +93,5 @@ int main(void)
 			}
 		}
     }
-    return 0; 
+    return 0;
 }

@@ -33,6 +33,7 @@ SRCS  += stm32f4xx_adc.c
 SRCS  += stm32f4xx_tim.c
 SRCS  += stm32f4xx_syscfg.c
 SRCS  += stm32f4xx_usart.c
+SRCS  += stm32f4xx_exti.c
 SRCS  += misc.c
 SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
@@ -50,7 +51,7 @@ GTEST_ROOT = /home/reece/projects/freepulse/googletest/googletest
 TEST_ROOT  = ./tests
 TEST_DIRS  = $(INC_DIRS)
 TEST_DIRS += $(GTEST_ROOT)/include
-TEST_SRCS  = $(TEST_ROOT)/CircleBufferTest.cpp
+TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
 TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
 
 ######################################################################
@@ -58,11 +59,12 @@ TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
 ######################################################################
 
 # This is the path to the toolchain
-TOOLS_DIR = /home/reece/projects/freepulse/tools/gcc-arm-none-eabi-4_8-2014q1/bin
 CC      = arm-none-eabi-g++
 OBJCOPY = arm-none-eabi-objcopy
 GDB     = arm-none-eabi-gdb
 TESTCC  = g++ 
+
+STLINK = /home/reece/projects/freepulse/tools/stlink/build/st-flash
 
 INCLUDE = $(addprefix -I,$(INC_DIRS))
 TESTINCS = $(addprefix -I,$(TEST_DIRS))
@@ -89,7 +91,7 @@ LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 .PHONY: $(PROJ_NAME)
 $(PROJ_NAME): $(PROJ_NAME).elf
 
-%.o: %.c 
+%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(PROJ_NAME).elf: $(SRCS)
@@ -107,7 +109,8 @@ flash:
 .PHONY: debug
 debug:
 # before you start gdb, you must start st-util
-	$(GDB) $(PROJ_NAME).elf
+# /home/reece/projects/freepulse/tools/stlink/build/src/gdbserver/st-util[
+	arm-none-eabi-gdb $(PROJ_NAME).elf
 
 test: $(TEST_SRCS)
 	$(TESTCC) $(TESTINCS) $(TEST_LIBS) $^ -o $@

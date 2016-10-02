@@ -201,32 +201,28 @@ private:
     int display_cursor = 0;
     int last_val;
     int max_signal_value = 4096;
+    int min_signal_value = 0;
 
 public:
     SignalTrace(int row, int column, int len, int width, int background_color, int trace_color, 
-                int max_signal_value, CircleBuffer<int>* displayData, Display* tft):
+                int min_signal_value, int max_signal_value, CircleBuffer<int>* displayData, Display* tft):
                 ScreenElement(row,column,len,width,tft), displayData(displayData), background_color(background_color), 
-                trace_color(trace_color), max_signal_value(max_signal_value) {}
-        
+                trace_color(trace_color), max_signal_value(max_signal_value), min_signal_value(min_signal_value) {}
+
     void draw(void) {
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
 	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
     }
 
     void update(void) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
-		int new_val = displayData->newest();
-		if (!prim) { 
-			__enable_irq();
-		}
+		int new_val = ((*displayData)[0] - min_signal_value);
 		int threshold = 5;
 		int display = new_val * real_len;
-		display /= max_signal_value;
+		display /= (max_signal_value - min_signal_value);
 		if (display > real_len) { display = real_len; }
 		else if (display < 0) { display = 0; }
 		int old_display = last_val * real_len;
-		old_display /= max_signal_value;
+		old_display /= (max_signal_value - min_signal_value);
 		if (old_display > real_len) { old_display = real_len; }
 		else if (old_display < 0) { old_display = 0; }
 		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
