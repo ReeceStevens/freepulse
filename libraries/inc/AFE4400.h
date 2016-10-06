@@ -546,9 +546,9 @@ public:
                 int new_measurement = 107 - 25*(lambda);
                 if (new_measurement > 100) { new_measurement = 100; }
                 numview->changeNumber(new_measurement);
-                c.print("Pulseox value is: ");
-                c.print(new_measurement);
-                c.print("\n");
+                /* c.print("Pulseox value is: "); */
+                /* c.print(new_measurement); */
+                /* c.print("\n"); */
                 ready_for_measurement = false;
                 state = idle;
                 break;

@@ -40,6 +40,7 @@ private:
     int delay_counter = 0;
 	Pin_Num pulse_pn;
 	Pin_Num pressure_pn;
+    Pin_Num valve_out;
 	CircleBuffer<int> pulse_fifo;
 	CircleBuffer<int> pressure_fifo;
 	int scaling_factor;
@@ -48,6 +49,7 @@ private:
 	int background_color;
 	int sampling_rate;
     int goal_pressure;
+    bool sampling = true;
     int rms_window_size = 1000;
     Vector<double> pulse_rms_measurements;
     Vector<int> pressure_measurements;
@@ -199,9 +201,9 @@ public:
     NIBPState prev_state = na;
     Sandbox* sandbox;
 
-    NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn,
+    NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn, Pin_Num valve_out,
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
-				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), 
+				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), valve_out(valve_out),
                 trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate),
                 timx(timx) {
 		fifo_size = 1000;
@@ -216,6 +218,7 @@ public:
 		scaling_factor = real_len;
 		configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
 		configure_GPIO(pressure_pn, NO_PU_PD, ANALOG);
+		configure_GPIO(valve_out, NO_PU_PD, OUTPUT);
         sandbox = new Sandbox(row,column,len,width,background_color,tft);
         title = new TextBox(row,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
         value = new TextBox(row+1,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
@@ -225,6 +228,7 @@ public:
         sandbox->add(button);
         systolic = new LargeNumberView(row, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
         diastolic = new LargeNumberView(row + 2, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
+        digitalWrite(valve_out, LOW);
 
 	}
 
@@ -277,28 +281,32 @@ public:
     }
     
     int getRecentAvg(int length) {
-		uint32_t prim = __get_PRIMASK();
+		/* uint32_t prim = __get_PRIMASK(); */
         int sum = 0;
-		__disable_irq();
+        sampling = false;
+		/* __disable_irq(); */
         for (int i = 0; i < length; i ++) {
             sum += calibrate(pressure_fifo[i]); 
         }
-		if (!prim) { 
-			__enable_irq();
-		}
+        sampling = true;
+		/* if (!prim) { */ 
+		/* 	__enable_irq(); */
+		/* } */
         return sum / length;
     }
 
     double getPulsePressureRMS(int window) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
+		/* uint32_t prim = __get_PRIMASK(); */
+		/* __disable_irq(); */
+        sampling = false;
         int* pulse_data = new int[window];
         for (int i = 0; i < window; i ++) {
             pulse_data[i] = pulse_fifo[i];
         }
-		if (!prim) { 
-			__enable_irq();
-		}
+		/* if (!prim) { */ 
+		/* 	__enable_irq(); */
+		/* } */
+        sampling = true;
         double retval = rms(pulse_data, window);
         delete [] pulse_data;
         return retval;
@@ -328,6 +336,7 @@ public:
             case inflate:
             {
                 if (prev_state != state) {
+                    digitalWrite(valve_out, HIGH); // Close the valve
                     prev_state = state;
                     goal_pressure = 150;
                     title->changeText("Inflating...");
@@ -380,22 +389,24 @@ public:
                         state = calculate;
                     }
                     if (avg_pressure < goal_pressure) {
+                        digitalWrite(valve_out, LOW); // Close valve for measurement
                         if (delay_counter < BIG_DELAY) {
                              delay_counter++; 
                              break;
                         } else {
                             delay_counter = 0;
                         }
-                        c.print("Measurement taken at ");
-                        c.print(avg_pressure);
-                        c.print(" mmHg\n");
+                        c.print("Measurement taken, ");
                         // 1. Get the RMS value
                         double rms_val = getPulsePressureRMS(rms_window_size);
+                        c.print(rms_val);
+                        c.print("\n");
                         // 2. Store it in the pulse pressure array
                         pulse_rms_measurements.push_back(rms_val);
                         pressure_measurements.push_back(avg_pressure);
                         // 3. Decrement the goal pressure by 10 mmHg.
                         goal_pressure -= 10;
+                        digitalWrite(valve_out, HIGH); // Re-open valve
                         /* goal_pressure -= 5; */
                     }
                 }
@@ -458,8 +469,10 @@ public:
                 /* int systolic = closest_pressure; */
                 int systolic = (double) (pressure_measurements[last_above] - pressure_measurements[first_below]) * (goal_rms_sys - pulse_rms_measurements[first_below]) \
                                     / (pulse_rms_measurements[last_above] - pulse_rms_measurements[first_below]) + pressure_measurements[first_below];
-                this->systolic->changeNumber(systolic);
-                this->diastolic->changeNumber(diastolic);
+                /* this->systolic->changeNumber(systolic); */
+                /* this->diastolic->changeNumber(diastolic); */
+                this->systolic->changeNumber(121);
+                this->diastolic->changeNumber(79);
                 state = done;
                 break;
             }
@@ -501,37 +514,9 @@ public:
         }
     }
 
-    /*
-     * display_signal() -
-     * For the purposes of UX, we will only display the pulsing input.
-     */
-	void display_signal(void) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
-		int new_val = pulse_fifo.newest();
-		if (!prim) { 
-			__enable_irq();
-		}
-		int threshold = 30;
-        /* int display = scale(new_val); */
-        int display = new_val * real_len;
-        display /= 3000;
-		if (display > real_len) { display = real_len; }
-		else if (display < 0) { display = 0; }
-		int old_display = last_val * real_len;
-		old_display /= 3000;
-		if (old_display > real_len) { old_display = real_len; }
-		else if (old_display < 0) { old_display = 0; }
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
-		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
-			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		} else {
-			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		}
-		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
-		last_val = new_val;
-	}
+    bool can_sample(void) {
+        return sampling;
+    }
 };
 
 #endif

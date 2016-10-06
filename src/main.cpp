@@ -21,8 +21,8 @@ extern "C" void TIM3_IRQHandler(void) {
 
 extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
+		if(nibp.can_sample()) {nibp.read();}
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-		int val = nibp.read();
 	}
 }
 
