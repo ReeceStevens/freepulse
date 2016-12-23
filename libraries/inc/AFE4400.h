@@ -358,7 +358,7 @@ private:
      */
     uint32_t setLEDCurrent(uint8_t value) {
         uint32_t both_leds = (((uint32_t)value) << 8) + value;
-        writeData(LEDCNTRL, both_leds);
+        writeData(LEDCNTRL, both_leds + 0x010000);
         current_led_i_value = value;
         return readData(LEDCNTRL);
     }
@@ -369,13 +369,13 @@ private:
      * Assumes a pulse repetition frequency of 500 Hz
      */
     void configurePulseTimings(void) {
-        writeData(CONTROL0, 0x00000000);
+        writeData(CONTROL0, 0x000000);
         /* setCancellationFilters(0x06); */
         setCancellationFilters(0x02);
         setLEDCurrent(0x1A);
-        writeData(CONTROL2, 0x002000);
-        /* writeData(CONTROL1, 0x0102); // Enable timers */
-        writeData(CONTROL1, 0x010707); // Enable timers
+        writeData(CONTROL1, 0x0102); // Enable timers
+        writeData(CONTROL2, 0x020100);
+        /* writeData(CONTROL1, 0x010707); // Enable timers */
         writeData(LED2STC, 6050);
         writeData(LED2ENDC, 7998);
         writeData(LED2LEDSTC, 6000);
@@ -422,7 +422,23 @@ public:
         digitalWrite(adc_pdn, LOW);
     }
 
+    /*
+     * self_check()
+     * Perform multiple reads to the CONTROL1 register and prints the reads to console.
+     * Finally, checks to ensure CONTROL1 register is nonzero, since it is defined to
+     * always have a nonzero value.
+     */
+    bool self_check() {
+        c.print("Beginning Self Check... \n");
+        for (int i = 0; i < 5; i++) {
+            c.print(readData(CONTROL1));
+            c.print("\n");
+        }
+        return readData(CONTROL1) != 0;
+    }
+
     void enable() {
+		SPI->begin();
         digitalWrite(adc_pdn, HIGH);
         delay(100000);
         digitalWrite(rst, HIGH);
@@ -430,14 +446,20 @@ public:
         digitalWrite(rst, LOW);
         delay(100000);
         digitalWrite(rst, HIGH);
-		SPI->begin();
-        writeData(CONTROL0, SW_RST);
+        delay(100000);
+        /* writeData(CONTROL0, SW_RST); */
         configurePulseTimings();
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
         display_signal.resize(MEASUREMENT_WINDOW_SIZE);
         init_sampler();
-        signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,2000,&display_signal,tft);
+        if (!self_check()) {
+            // Error condition. CONTROL1 should be non-zero
+            // TODO: provide better UI indicator for internal error
+            signalTrace = new SignalTrace(row,column,len,width,RA8875_RED,RA8875_WHITE,0,2000,&display_signal,tft);
+        } else {
+            signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,2000,&display_signal,tft);
+        }
         numview = new LargeNumberView(row + 2,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
         state = idle;
     }
@@ -473,13 +495,15 @@ public:
         return this->ready_to_sample;
     }
 
-    void sample(void) {
-        int ir_data = getLED1Data();
+    int sample(void) {
+        int ir_data = filter_ir(getLED1Data());
         int display_val = filter_display(ir_data) + 500;
         display_signal.add(display_val);
         red_signal.add(filter_red(getLED2Data()));
-        bool ready = ir_signal.add(filter_ir(ir_data));
+        bool ready = ir_signal.add(ir_data);
         if (ready) { ready_for_measurement = true; }
+        ready_for_measurement = true;
+        return ir_data; // For dev purposes only
     }
 
     void update() {
@@ -532,7 +556,7 @@ public:
                 /* c.print(dc_ir); */
                 /* c.print("\n"); */
                 ac_rms_ir = ac_rms(ir_signal, dc_ir);
-                /* c.print("IR AC: \n"); */
+                /* c.print("IR AC: "); */
                 /* c.print(ac_rms_ir); */
                 /* c.print("\n"); */
                 ready_to_sample = true;
@@ -595,6 +619,7 @@ public:
 
         // 2. Set LED drive current to 5mA
         setLEDCurrent(0x1A);
+        /* setLEDCurrent(0xFF); */
 
         int iter_count = 0;
         while(1) {

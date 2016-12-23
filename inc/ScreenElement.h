@@ -187,8 +187,10 @@ public:
     }
 
     void changeNumber(int new_value) {
-        value = new_value;
-        has_updated = true;
+        if (value != new_value) {
+            value = new_value;
+            has_updated = true;
+        }
     }
 
 };
