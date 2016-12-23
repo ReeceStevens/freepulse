@@ -15,6 +15,7 @@
 #define RA8875_GREENYELLOW 0xAFE5      
 #define RA8875_LIGHTGREY   0xC618     
 
+static const int LONG_DELAY = 10000;
 
 /* 
  * Large Font Bitmap Declarations
@@ -164,13 +165,12 @@ public:
 	int vertical_scale;
 	int horizontal_scale;
 	
-	Display(Pin_Num cs, Pin_Num rst, SPI_Interface* SPIx, int rows, int columns):
-		Adafruit_RA8875(cs,rst,SPIx), SPI(SPIx), cs(cs), rst(rst), rows(rows), columns(columns){
+	Display(Pin_Num cs, Pin_Num rst, Pin_Num wait, SPI_Interface* SPIx, int rows, int columns):
+		Adafruit_RA8875(cs,rst,wait,SPIx), SPI(SPIx), wait(wait), cs(cs), rst(rst),  rows(rows), columns(columns){
 		configure_GPIO(_cs, NO_PU_PD, OUTPUT);
 		configure_GPIO(_rst, NO_PU_PD, OUTPUT);
-		this->interrupt = PC2;
+		this->interrupt = PA12;
 		configure_GPIO(this->interrupt, UP, INPUT); // INT pin
-		this->wait = PC3;
 		configure_GPIO(this->wait, UP, INPUT); // WAIT pin
 		this->vertical_scale = height / rows;
 		this->horizontal_scale = width / columns;
@@ -181,11 +181,13 @@ public:
 	
 	void startup() {
 		begin(RA8875_800x480);
+        delay(LONG_DELAY);
 		displayOn(true);
 		GPIOX(true);      // Enable TFT - display enable tied to GPIOX
 		PWM1config(true, RA8875_PWM_CLK_DIV1024); // PWM output for backlight
 		PWM1out(255);
 		fillScreen(RA8875_BLACK);
+        delay(LONG_DELAY);
 		touchEnable(true);
 	}
 

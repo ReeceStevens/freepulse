@@ -473,11 +473,11 @@ public:
 		/* GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; */
 		/* GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; */
 		/* GPIO_Init(GPIOA, &GPIO_InitStructure); */
-		configure_GPIO(PA2, UP, ALT);
-		// Map USART2 to A.02
-		GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
+		configure_GPIO(PA9, UP, ALT);
+		// Map USART2 to A.09
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
 
-		RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 		USART_InitTypeDef USART_InitStructure;
 		// Initialize USART
 		USART_InitStructure.USART_BaudRate = this->baudrate;
@@ -493,8 +493,8 @@ public:
 	}
 
 	int putcharx(int ch) {
-		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);
-		USART_SendData(USART2, (uint8_t)ch);
+		while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+		USART_SendData(USART1, (uint8_t)ch);
 		return ch;
 	}
 

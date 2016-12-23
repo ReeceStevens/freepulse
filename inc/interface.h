@@ -6,6 +6,7 @@
 
 #define DISPLAY_CS PC4
 #define DISPLAY_RESET PC5
+#define DISPLAY_WAIT PB6
 #define DISPLAY_SPI spi_c1
 
 #define SCREEN_ROWS 12
@@ -16,7 +17,7 @@ enum layout{
 };
 
 SPI_Interface display_spi(DISPLAY_SPI);
-Display tft(DISPLAY_CS, DISPLAY_RESET, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
+Display tft(DISPLAY_CS, DISPLAY_RESET, DISPLAY_WAIT, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
 
 layout currentMode = home;
 

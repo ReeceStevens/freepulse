@@ -412,12 +412,12 @@ public:
         // Must perform software reset (SW_RST)
         this->cs = cs;
         this->rst = rst;
-        this->adc_rdy = PA8; // Fixed pin for now, will generalize later.
+        this->adc_rdy = adc_rdy; // Fixed pin for now, will generalize later.
         this->adc_pdn = adc_pdn;
 		configure_GPIO(cs, NO_PU_PD, OUTPUT);
 		configure_GPIO(rst, NO_PU_PD, OUTPUT);
 		configure_GPIO(adc_pdn, NO_PU_PD, OUTPUT);
-        configure_GPIO(PA13, NO_PU_PD, OUTPUT);
+        configure_GPIO(adc_rdy, NO_PU_PD, INPUT);
         digitalWrite(cs, HIGH);
         digitalWrite(adc_pdn, LOW);
     }
@@ -448,13 +448,12 @@ public:
     }
 
     void init_sampler(void) {
-        configure_GPIO(adc_rdy, UP, INPUT);
         RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-        SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource8);
+        SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource14);
 
         EXTI_InitTypeDef EXTI_InitStruct;
 
-        EXTI_InitStruct.EXTI_Line = EXTI_Line8;
+        EXTI_InitStruct.EXTI_Line = EXTI_Line14;
         EXTI_InitStruct.EXTI_LineCmd = ENABLE;
         EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
         EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
@@ -462,7 +461,7 @@ public:
 
         NVIC_InitTypeDef NVIC_InitStruct;
 
-        NVIC_InitStruct.NVIC_IRQChannel = EXTI9_5_IRQn;
+        NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
         // TODO: come back to these priority levels.
         NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
         NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
