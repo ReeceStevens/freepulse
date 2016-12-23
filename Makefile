@@ -106,6 +106,10 @@ clean:
 flash: 
 	st-flash write $(PROJ_NAME).bin 0x8000000
 
+# Flash via UART (v1.2 Prototype)
+uart-flash:
+	stm32flash -w $(PROJ_NAME).bin -v -g 0x0 /dev/ttyUSB0
+
 .PHONY: debug
 debug:
 # before you start gdb, you must start st-util
