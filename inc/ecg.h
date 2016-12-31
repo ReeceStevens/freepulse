@@ -64,7 +64,7 @@ private:
 				xs[i+1][0] = y;	
 			}
 		}
-		return y/10 - 1500; 
+		return y/10 - 1000;
 	}
 
 
@@ -90,6 +90,7 @@ public:
 
 	int read(void) {
 		int ecg_data = filter(analogRead(pn));
+		/* int ecg_data = analogRead(pn); */
 		fifo.add(ecg_data);
 		return ecg_data;
 	}
