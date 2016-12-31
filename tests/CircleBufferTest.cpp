@@ -33,6 +33,14 @@ class CircleBufferTest : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
+int mean(CircleBuffer<int> vals, int window_size) {
+    int running_sum = 0;
+    for (int i = 0; i < window_size; i++) {
+        running_sum += vals[i];
+    }
+    return running_sum / window_size;
+}
+
 // Tests that the Foo::Bar() method does Abc.
 TEST_F(CircleBufferTest, SimpleAdd) {
 	CircleBuffer<int> a = CircleBuffer<int>();
@@ -69,6 +77,20 @@ TEST_F(CircleBufferTest, AddLotsOfElements) {
 	EXPECT_EQ(a[0], k);
 	EXPECT_EQ(a.newest(), k);
 	EXPECT_EQ(a[4], k-4);
+}
+
+TEST_F(CircleBufferTest, TakeMovingAverageOfElements) {
+    CircleBuffer<int> a = CircleBuffer<int>(10);
+    int mean_window = 5;
+    for (int i = 0; i < 100; i++) {
+        a.add(i);
+        int running_sum = 0;
+        for (int j = 0; j < 5; j++) {
+            running_sum += i - j < 0 ? 0 : i - j;
+        }
+        int expected_mean = running_sum / mean_window;
+        EXPECT_EQ(mean(a, mean_window), expected_mean);
+    }
 }
 
 }  // namespace

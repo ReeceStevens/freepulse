@@ -51,8 +51,8 @@ GTEST_ROOT = /home/reece/projects/freepulse/googletest/googletest
 TEST_ROOT  = ./tests
 TEST_DIRS  = $(INC_DIRS)
 TEST_DIRS += $(GTEST_ROOT)/include
-TEST_SRCS  = $(TEST_ROOT)/CircleFifoTest.cpp
-TEST_LIBS  = $(GTEST_ROOT)/make/libgtest.a
+TEST_SRCS  = $(TEST_ROOT)/CircleBufferTest.cpp
+TEST_LIBS  = $(GTEST_ROOT)/make/gtest-all.o
 
 ######################################################################
 #                         SETUP TOOLS                                #
@@ -117,5 +117,5 @@ debug:
 	arm-none-eabi-gdb $(PROJ_NAME).elf
 
 test: $(TEST_SRCS)
-	$(TESTCC) $(TESTINCS) $(TEST_LIBS) $^ -o $@
+	$(TESTCC) $(TESTINCS) -lpthread $(TEST_LIBS) $^ -o $@
 	./$@
