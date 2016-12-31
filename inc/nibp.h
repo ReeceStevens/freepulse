@@ -12,7 +12,7 @@
 
 extern Console c;
 
-const int BIG_DELAY = 1000;
+const int BIG_DELAY = 100;
 
 enum NIBPState {
     inflate, measure, calculate, done, start, error, na
@@ -60,7 +60,13 @@ private:
     LargeNumberView* diastolic;
 	TimerChannel timx;
 
+    void open_valve() {
+        digitalWrite(valve_out, HIGH);
+    }
 
+    void close_valve() {
+        digitalWrite(valve_out, LOW);
+    }
 
     /*
      * IIR Butterworth filter
@@ -157,9 +163,14 @@ private:
      * Output is pressure in mmHg.
      */
     int calibrate(double input_value) {
-        double m = 0.4342;
-        double b = -745.6;
+        /* FreePulse 1 */
+        double m = 0.3998;
+        double b = -644;
+        /* FreePulse 4 */
+        /* double m = 1.126; */
+        /* double b = -1.103; */
         return (int) (m*input_value + b);
+        /* return input_value; */
     };
 
     int max_idx(Vector<double> a) {
@@ -317,6 +328,7 @@ public:
             case start:
             {
                 if (prev_state != state) {
+                    open_valve();
                     prev_state = state;
                     title->changeText("NIBP Test");
                     value->changeText("");
@@ -336,7 +348,7 @@ public:
             case inflate:
             {
                 if (prev_state != state) {
-                    digitalWrite(valve_out, HIGH); // Close the valve
+                    close_valve(); // Close the valve
                     prev_state = state;
                     goal_pressure = 150;
                     title->changeText("Inflating...");
@@ -374,7 +386,7 @@ public:
                     pulse_rms_measurements.empty();
                 }
                 else {
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(3);
                     value->changeText(avg_pressure);
                     if (goal_pressure < 20) {
                         // Finished! Validate measurements
@@ -389,7 +401,7 @@ public:
                         state = calculate;
                     }
                     if (avg_pressure < goal_pressure) {
-                        digitalWrite(valve_out, LOW); // Close valve for measurement
+                        close_valve(); // Close valve for measurement
                         if (delay_counter < BIG_DELAY) {
                              delay_counter++; 
                              break;
@@ -406,7 +418,7 @@ public:
                         pressure_measurements.push_back(avg_pressure);
                         // 3. Decrement the goal pressure by 10 mmHg.
                         goal_pressure -= 10;
-                        digitalWrite(valve_out, HIGH); // Re-open valve
+                        open_valve(); // Re-open valve
                         /* goal_pressure -= 5; */
                     }
                 }
@@ -469,10 +481,8 @@ public:
                 /* int systolic = closest_pressure; */
                 int systolic = (double) (pressure_measurements[last_above] - pressure_measurements[first_below]) * (goal_rms_sys - pulse_rms_measurements[first_below]) \
                                     / (pulse_rms_measurements[last_above] - pulse_rms_measurements[first_below]) + pressure_measurements[first_below];
-                /* this->systolic->changeNumber(systolic); */
-                /* this->diastolic->changeNumber(diastolic); */
-                this->systolic->changeNumber(121);
-                this->diastolic->changeNumber(79);
+                this->systolic->changeNumber(systolic);
+                this->diastolic->changeNumber(diastolic);
                 state = done;
                 break;
             }
