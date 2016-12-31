@@ -168,7 +168,7 @@ public:
 	Display(Pin_Num cs, Pin_Num rst, Pin_Num wait, SPI_Interface* SPIx, int rows, int columns):
 		Adafruit_RA8875(cs,rst,wait,SPIx), SPI(SPIx), wait(wait), cs(cs), rst(rst),  rows(rows), columns(columns){
 		configure_GPIO(_cs, NO_PU_PD, OUTPUT);
-		configure_GPIO(_rst, NO_PU_PD, OUTPUT);
+		configure_GPIO(_rst, UP, OUTPUT);
 		this->interrupt = PA12;
 		configure_GPIO(this->interrupt, UP, INPUT); // INT pin
 		configure_GPIO(this->wait, UP, INPUT); // WAIT pin
