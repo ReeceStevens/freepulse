@@ -71,35 +71,36 @@
 extern Console c;
 
 enum pulseox_state {
-    off, idle, calibrating, get_red, get_ir, get_spo2
+    off, idle, calibrating, get_red, get_ir, get_spo2, wait
 };
 
 static const int DC_WINDOW_SIZE = 50;
-static const int MAX_CALIBRATION_ITERATIONS = 10;
+static const int MAX_CALIBRATION_ITERATIONS = 75;
 static const int MEASUREMENT_WINDOW_SIZE = 3000;
 
 class PulseOx: public ScreenElement {
 private:
-    CircleBuffer<int> red_signal;
-    CircleBuffer<int> ir_signal;
+    CircleBuffer<int32_t> red_signal;
+    CircleBuffer<int32_t> ir_signal;
     CircleBuffer<int> display_signal; // Transmittace graph on the screen
     LargeNumberView* numview;
     SignalTrace* signalTrace;
     SPI_Interface* SPI;
     Pin_Num cs, rst, adc_rdy, adc_pdn;
     pulseox_state state = off;
+    int wait_counter = 0;
     bool ready_for_measurement = false;
     bool ready_to_sample = true;
     bool calibrated = false;
-    float dc_goal = 0.36; // 30% of ADC full-scale voltage (1.2V)
+    uint32_t dc_goal = 0.36 * 0x001FFFFF / 1.2; // 30% of ADC full-scale voltage (1.2V)
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
     uint32_t current_led_i_value = 0x1A;
 
-    double dc_red;
-    double dc_ir;
-    double ac_rms_red;
-    double ac_rms_ir;
+    uint32_t dc_red;
+    uint32_t dc_ir;
+    uint32_t ac_rms_red;
+    uint32_t ac_rms_ir;
 
     /*
      * Display Data Filter
@@ -175,7 +176,7 @@ private:
 		{0, 0, 0}
 	};
 
-	double filter_red(int x) {
+	double filter_red(int32_t x) {
 		red_xs[0][0] = (double) x;
 		double y;
 		for (int i = 0; i < 5; i ++){
@@ -211,7 +212,7 @@ private:
 		{0, 0, 0}
 	};
 
-	double filter_ir(int x) {
+	double filter_ir(int32_t x) {
 		ir_xs[0][0] = (double) x;
 		double y;
 		for (int i = 0; i < 5; i ++){
@@ -247,7 +248,7 @@ private:
 		{0, 0, 0}
 	};
 
-	double filter_display(int x) {
+	double filter_display(int32_t x) {
 		d_xs[0][0] = (double) x;
 		double y;
 		for (int i = 0; i < 5; i ++){
@@ -262,7 +263,7 @@ private:
 			d_ws[i][1] = d_ws[i][0];
 			// Carry over to next section
 			if (i != 4) {
-				d_xs[i+1][0] = y;	
+				d_xs[i+1][0] = y;
 			}
 		}
         return y;
@@ -300,15 +301,23 @@ private:
         return register_data;
     }
 
-    uint32_t getLED1Data() {
+    int32_t getLED1Data() {
         /* while (!digitalRead(adc_rdy)) {} */
-        return readData(LED1_ALED1VAL);
+        int register_value = readData(LED1_ALED1VAL);
+        if (register_value & 0x00200000){
+            register_value |= 0xFFD00000;
+        }
+        return register_value;
         /* return readData(LED1VAL); */
     }
 
-    uint32_t getLED2Data() {
+    int32_t getLED2Data() {
         /* while (!digitalRead(adc_rdy)) {} */
-        return readData(LED2_ALED2VAL);
+        int register_value = readData(LED2_ALED2VAL);
+        if (register_value & 0x00200000){
+            register_value |= 0xFFD00000;
+        }
+        return register_value;
         /* return readData(LED2VAL); */
     }
 
@@ -371,8 +380,6 @@ private:
     void configurePulseTimings(void) {
         writeData(CONTROL0, 0x000000);
         /* setCancellationFilters(0x06); */
-        setCancellationFilters(0x02);
-        setLEDCurrent(0x1A);
         writeData(CONTROL1, 0x0102); // Enable timers
         writeData(CONTROL2, 0x020100);
         /* writeData(CONTROL1, 0x010707); // Enable timers */
@@ -405,9 +412,14 @@ private:
         writeData(ADCRSTSTCT3, 6000);
         writeData(ADCRSTENDCT3, 6003);
         writeData(PRPCOUNT, 7999);
+        setCancellationFilters(0x06);
+        setLEDCurrent(0x1A);
     }
 
 public:
+    bool tally_samples = false;
+    int num_samples = 0;
+
     PulseOx(int row, int column, int len, int width, SPI_Interface* SPI, Pin_Num cs, Pin_Num rst, Pin_Num adc_rdy, Pin_Num adc_pdn, Display* tft): ScreenElement(row,column,len,width,tft), SPI(SPI), cs(cs), rst(rst), adc_rdy(adc_rdy), adc_pdn(adc_pdn) {
         // Must perform software reset (SW_RST)
         this->cs = cs;
@@ -434,6 +446,7 @@ public:
             c.print(readData(CONTROL1));
             c.print("\n");
         }
+        c.print("Finished Self Check\n");
         return readData(CONTROL1) != 0;
     }
 
@@ -496,14 +509,16 @@ public:
     }
 
     int sample(void) {
-        int ir_data = filter_ir(getLED1Data());
-        int display_val = filter_display(ir_data) + 500;
+        int32_t ir_raw_data = getLED1Data();
+        int32_t ir_data = filter_ir(ir_raw_data);
+        int32_t display_val = filter_display(ir_raw_data) + 500;
+        /* int display_val = ir_data + 500; */
         display_signal.add(display_val);
-        red_signal.add(filter_red(getLED2Data()));
+        red_signal.add((int32_t)filter_red(getLED2Data()));
         bool ready = ir_signal.add(ir_data);
         if (ready) { ready_for_measurement = true; }
         ready_for_measurement = true;
-        return ir_data; // For dev purposes only
+        return display_val; // For dev purposes only
     }
 
     void update() {
@@ -514,24 +529,40 @@ public:
                 break;
             case idle:
             {
+                if (calibrated) { state = wait; break; }
+                ready_to_sample = false;
                 if (ready_for_measurement) { state = calibrating; }
+                ready_to_sample = true;
                 break;
             }
             case calibrating:
             {
-                if (calibrated) { state = get_red; break; }
-                c.print("Beginning calibration\n");
+                /* c.print("Beginning calibration\n"); */
                 ready_to_sample = false;
                 bool success = calibrate();
                 ready_to_sample = true;
-                c.print("Calibration complete!\n");
                 if (success) {
-                    state = get_red;
+                    /* c.print("Calibration successful!\n"); */
+                    state = wait;
                     calibrated = true;
+                    wait_counter = 0;
                 } else {
                     // TODO: error handling for calibration
-                    c.print("Calibration failed :(\n");
+                    /* c.print("Calibration failed :(\n"); */
                     state = idle;
+                }
+                break;
+            }
+            case wait:
+            {
+                if (wait_counter > 1000) {
+                    wait_counter = 0;
+                    state = get_red;
+                } else {
+                    /* c.print("Waiting at tick "); */
+                    /* c.print(wait_counter); */
+                    /* c.print("\n"); */
+                    wait_counter ++;
                 }
                 break;
             }
@@ -565,13 +596,20 @@ public:
             }
             case get_spo2:
             {
-                double lambda = (ac_rms_red / dc_red) / (ac_rms_ir / dc_ir);
-                int new_measurement = 107 - 25*(lambda);
-                if (new_measurement > 100) { new_measurement = 100; }
-                numview->changeNumber(new_measurement);
+                int scaling_factor = 1000;
+                int lambda = ((scaling_factor * ac_rms_red * dc_ir) / dc_red) / (ac_rms_ir);
+                /* c.print("Lambda value is: "); */
+                // TODO: get two volunteers w/different pulse ox levels, use as phantoms to calibrate
+                // See what kind of response you can get
+                c.print(lambda);
+                c.print("\n");
+                /* int new_measurement = 107 - (((25*ac_rms_red*dc_ir) / ac_rms_ir) / dc_red); */
+                int new_measurement = 107*scaling_factor - lambda;
                 /* c.print("Pulseox value is: "); */
                 /* c.print(new_measurement); */
                 /* c.print("\n"); */
+                if (new_measurement > 100) { new_measurement = 100; }
+                numview->changeNumber(new_measurement);
                 ready_for_measurement = false;
                 state = idle;
                 break;
@@ -579,16 +617,24 @@ public:
         }
     }
 
-    double mean(CircleBuffer<int> vals) {
-        int running_sum = 0;
-        int len = vals.size();
+    int32_t mean(CircleBuffer<int32_t> vals) {
+        uint32_t running_sum = 0;
+        uint32_t len = vals.size();
         for (int i = 0; i < len; i++) {
             running_sum += vals[i];
         }
-        return ((double) running_sum) / ((double) len);
+        return running_sum / len;
     }
 
-    double ac_rms(CircleBuffer<int> vals, double mean) {
+    int32_t mean(CircleBuffer<int32_t> vals, int window_size) {
+        uint32_t running_sum = 0;
+        for (int i = 0; i < window_size; i++) {
+            running_sum += vals[i];
+        }
+        return running_sum / window_size;
+    }
+
+    double ac_rms(CircleBuffer<int32_t> vals, int32_t mean) {
         int len = vals.size();
         double rms_sum = 0;
         for (int i = 0; i < len; i ++) {
@@ -615,34 +661,75 @@ public:
         // required, you'll need a better fix for this.
 
         // 1. Set R_f to 1MOhm
-        setCancellationFilters(0x06);
+        /* setCancellationFilters(0x06); */
 
         // 2. Set LED drive current to 5mA
-        setLEDCurrent(0x1A);
+        /* setLEDCurrent(0x1A); */
         /* setLEDCurrent(0xFF); */
 
         int iter_count = 0;
+        double error = 80000;
         while(1) {
-            float dc = mapValueToVoltage(mean(ir_signal));
-            if ((dc - dc_goal < 1e-3) || (dc_goal - dc < 1e-3)) {
+            /* float dc = mapValueToVoltage(mean(ir_signal)); */
+            ready_to_sample = true;
+            num_samples = 0;
+            tally_samples = true;
+            delay(100000);
+            tally_samples = false;
+            /* c.print("Number of samples logged during calibration step: "); */
+            /* c.print(num_samples); */
+            /* c.print("\n"); */
+            ready_to_sample = false;
+            int32_t dc = mean(ir_signal, 100);
+            if (((dc - dc_goal < error) && (dc > dc_goal)) || ((dc_goal - dc < error) && (dc_goal > dc))) {
+                /* ready_to_sample = true; */
+                /* c.print("DC value "); */
+                /* c.print(dc); */
+                /* c.print(" is within goal "); */
+                /* c.print(dc_goal); */
+                /* c.print("\n"); */
                 return true;
             }
             else if (dc < dc_goal) {
                 // Increase LED current
+                /* ready_to_sample = true; */
+                /* c.print("DC value "); */
+                /* c.print(dc); */
+                /* c.print(" is less than goal "); */
+                /* c.print(dc_goal); */
+                /* c.print("\n"); */
                 if (current_led_i_value == 0xFF) {
-                    return false;
+                    current_rf_value += 1;
+                    setCancellationFilters(current_rf_value);
+                    /* c.print("Increasing Rf value\n"); */
+                    if (current_rf_value == 0xFF) { return false; }
+                } else {
+                    current_led_i_value += 2;
+                    setLEDCurrent(current_led_i_value);
+                    /* c.print("Increasing LED brightness\n"); */
                 }
-                current_led_i_value += 2;
-                setLEDCurrent(current_led_i_value);
             }
             else {
-                // Reduce Rf (i.e. reduce TIA display_gain)
-                if (current_rf_value == 0) {
-                    return false;
+                /* ready_to_sample = true; */
+                /* c.print("DC value "); */
+                /* c.print(dc); */
+                /* c.print(" is greater than goal "); */
+                /* c.print(dc_goal); */
+                /* c.print("\n"); */
+                // Reduce Rf (i.e. reduce TIA display_gain) or
+                // reduce LEDs if Rf can't be modified any more
+                if (current_rf_value <= 1) {
+                    current_led_i_value -= 2;
+                    setLEDCurrent(current_led_i_value);
+                    /* c.print("Decreasing LED brightness\n"); */
+                    if (current_led_i_value == 0) { return false; }
+                    /* return false; */
                 }
                 else {
+                    /* current_rf_value -= 1; */
                     current_rf_value -= 1;
                     setCancellationFilters(current_rf_value);
+                    /* c.print("Decrease Rf value\n"); */
                 }
             }
             // Timeout if calibration isn't done in time.
