@@ -456,9 +456,9 @@ public:
         if (!self_check()) {
             // Error condition. CONTROL1 should be non-zero
             // TODO: provide better UI indicator for internal error
-            signalTrace = new SignalTrace(row,column,len,width,RA8875_RED,RA8875_WHITE,0,2000,&display_signal,tft);
+            signalTrace = new SignalTrace(row,column,len,width,RA8875_RED,RA8875_WHITE,0,2000,&display_signal,tft,300);
         } else {
-            signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,0,2000,&display_signal,tft);
+            signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,1400000,1800000,&display_signal,tft,300);
         }
         numview = new LargeNumberView(row + 2,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
         state = idle;
