@@ -15,13 +15,19 @@ Screen settingsScreen = Screen(&tft);
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
 		int val = ecg.read();
+        /* c.print(val); */
+        /* c.print("\n"); */
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	}
 }
 
 extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
-		if(nibp.can_sample()) {nibp.read();}
+		if(nibp.can_sample()) {
+            nibp.read();
+            /* c.print(nibp.read()); */
+            /* c.print("\n"); */
+        }
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
 	}
 }
@@ -30,9 +36,10 @@ extern "C" void EXTI15_10_IRQHandler(void) {
     if (EXTI_GetITStatus(EXTI_Line14) != RESET) {
         /* spo2.self_check(); */
         if (spo2.can_sample()) {
-            /* spo2.sample(); */
-            c.print(spo2.sample());
-            c.print("\n");
+            spo2.sample();
+            if (spo2.tally_samples) spo2.num_samples += 1;
+            /* c.print(spo2.sample()); */
+            /* c.print("\n"); */
         }
         EXTI_ClearITPendingBit(EXTI_Line14);
     }
