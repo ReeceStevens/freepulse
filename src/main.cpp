@@ -2,6 +2,7 @@
 #include "Display.h"
 
 Console c(USART1, 115200);
+volatile uint32_t pulse_clock = 0;
 #include "interface.h"
 #include "Signals.h"
 
@@ -45,15 +46,17 @@ extern "C" void EXTI15_10_IRQHandler(void) {
     }
 }
 
+extern "C" void SysTick_Handler(void) {
+    pulse_clock += 1;
+}
+
 void MainScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
-  tft.showGrid();
   mainScreen.initialDraw();
 }
 
 void SettingsScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
-  tft.showGrid();
   settingsScreen.initialDraw();
 }
 
@@ -70,6 +73,7 @@ void initDevelopmentHeartbeat(void) {
 
 void systemInit() {
     /* initDevelopmentHeartbeat(); */
+    SysTick_Config(8400);
 	adcInit();
   	tft.startup();
     composeMainScreen(mainScreen);

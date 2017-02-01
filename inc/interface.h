@@ -46,17 +46,17 @@ Button default_button = Button(6,7,2,2,RA8875_LIGHTGREY,"Default Settings",
 TextBox title = TextBox(9,10,3,4,RA8875_BLACK,RA8875_WHITE,3,true,false,
                         "  FreePulse", &tft);
 TextBox version = TextBox(10,11,3,4,RA8875_BLACK,RA8875_WHITE,3,true,false,
-                        "   v0.9", &tft);
+                        "   v1.0", &tft);
 
-TextBox hr_label = TextBox(1,10,4,3,RA8875_BLACK,RA8875_BLUE,2,true,
+TextBox hr_label = TextBox(1,10,4,3,RA8875_BLACK,RA8875_GREEN,2,true,
                             true,"BPM",&tft);
-TextBox spo2_label = TextBox(5,10,4,3,RA8875_BLACK,RA8875_GREEN,2,true,
+TextBox spo2_label = TextBox(5,10,4,3,RA8875_BLACK,RA8875_BLUE,2,true,
                             true,"SpO2",&tft);
 LargeNumberView heartrate = LargeNumberView(3,10,2,3,RA8875_BLACK,
-                            RA8875_BLUE,true,60,&tft);
+                            RA8875_GREEN,true,60,&tft);
 
 void composeMainScreen(Screen& s) {
-    s.add(&settings_button);
+    /* s.add(&settings_button); */
     s.add(&title);
     s.add(&version);
     s.add(&hr_label);
@@ -66,9 +66,9 @@ void composeMainScreen(Screen& s) {
 }
 
 void composeSettingsScreen(Screen& s) {
-    s.add(&confirm_button);
-    s.add(&default_button);
-    s.add(&cancel_button);
+    /* s.add(&confirm_button); */
+    /* s.add(&default_button); */
+    /* s.add(&cancel_button); */
 }
 
 #endif
