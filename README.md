@@ -11,8 +11,21 @@ a more detailed post about the motivation and history of the project is on the d
 
 ![alpha_prototype](resources/prototype.jpg)
 
-Navigating the Repository
--------------------------
+## Current Goals and Notes
+
+- Determine better SpO2 calibration timing (currently only calibrate after reset)
+
+- Fix pulse oximeter readings (currently unstable). Develop a LUT or fitting
+  strategy?
+
+- Fix blood pressure inconsistencies. Look at patient data to determine where
+  the failures lie.
+
+- Add "recurring measurement" timer to NIBP module (i.e. "take a blood pressure
+  measurement every five minutes" during surgery)
+
+## Navigating the Repository
+
 ```
 src
   |- Contains main.cpp
@@ -32,29 +45,6 @@ system
 tests
   |- Unit tests for all hardware-abstracted classes
 ```
-
-Current Project Goals
----------------------
-
-1. Successful migration to STM32F4 from Teensy 3.2 (DONE as of commit a0e37f5)
-
-	- Restore SPI peripheral functionality
-
-	- Restore ECG functionality
-
-2. Completing remaining sensors
-
-	- SpO2 sensor
-
-	- NIBP system
-
-3. Develop final PCB
-
-4. Extend functionality through new peripheral modules
-
-	- SD card storage
-
-	- Bluetooth (?)
 
 [FreePulse]: http://www.freepulsemed.com
 [blog]: http://reecestevens.me/blog

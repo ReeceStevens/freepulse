@@ -13,7 +13,7 @@ PERIPH_DRIVERS_DIR = /home/reece/projects/freepulse/tools/STM32F4_STANDARD_PERIP
 # This is where the source files are located,
 # which are not in the current directory
 # SRC_DIRS = $(STM_DIR)/Libraries/STM32F4xx_StdPeriph_Driver/src
-SRC_DIRS = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/src 
+SRC_DIRS = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/src
 SRC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/src
 SRC_DIRS += ./libraries/src
 SRC_DIRS += ./system/src 
@@ -70,7 +70,7 @@ INCLUDE = $(addprefix -I,$(INC_DIRS))
 TESTINCS = $(addprefix -I,$(TEST_DIRS))
 
 # #defines needed when working with the STM library
-DEFS    = -DUSE_STDPERIPH_DRIVER -DSTM32F411xE 
+DEFS    = -DUSE_STDPERIPH_DRIVER -DSTM32F411xE
 
 ## Compiler options
 CFLAGS  = -ggdb
@@ -108,7 +108,7 @@ flash:
 
 # Flash via UART (v1.2 Prototype)
 uart-flash:
-	stm32flash -w $(PROJ_NAME).bin -v -g 0x0 /dev/ttyUSB0
+	stm32flash -b 115200 -w $(PROJ_NAME).bin -v -g 0x0 /dev/ttyUSB0
 
 .PHONY: debug
 debug:
