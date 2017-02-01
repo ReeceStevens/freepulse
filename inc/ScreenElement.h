@@ -207,15 +207,16 @@ private:
     int localmax = 0;
     int localmin = MAX_INT;
     int last_val;
-    int max_signal_value = 4096;
-    int min_signal_value = 0;
     int padding = 0;
 
 public:
+    int max_signal_value = 4096;
+    int min_signal_value = 0;
+
     SignalTrace(int row, int column, int len, int width, int background_color, int trace_color, 
                 int min_signal_value, int max_signal_value, CircleBuffer<int>* displayData, Display* tft, int padding):
                 ScreenElement(row,column,len,width,tft), displayData(displayData), background_color(background_color), 
-                trace_color(trace_color), max_signal_value(max_signal_value), min_signal_value(min_signal_value), padding(padding) {}
+                trace_color(trace_color), padding(padding),max_signal_value(max_signal_value), min_signal_value(min_signal_value){}
 
     void draw(void) {
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);

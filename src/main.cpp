@@ -14,7 +14,7 @@ Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
-		int val = ecg.read();
+		/* int val = ecg.read(); */
         /* c.print(val); */
         /* c.print("\n"); */
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
