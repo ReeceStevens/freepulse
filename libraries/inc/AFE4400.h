@@ -69,9 +69,15 @@
 #define DIAG            0x30
 
 extern Console c;
+extern volatile uint32_t pulse_clock;
+extern LargeNumberView heartrate;
 
 enum pulseox_state {
     off, idle, calibrating, get_red, get_ir, get_spo2, wait
+};
+
+enum pulse_rate_state {
+    up, down, complete
 };
 
 static const int DC_WINDOW_SIZE = 50;
@@ -83,12 +89,15 @@ private:
     CircleBuffer<int32_t> red_signal;
     CircleBuffer<int32_t> ir_signal;
     CircleBuffer<int> display_signal; // Transmittace graph on the screen
+    CircleBuffer<int32_t> bpm;
     LargeNumberView* numview;
     SignalTrace* signalTrace;
     SPI_Interface* SPI;
     Pin_Num cs, rst, adc_rdy, adc_pdn;
     pulseox_state state = off;
+    pulse_rate_state pulse_state = complete;
     int wait_counter = 0;
+    int pulse_threshold;
     bool ready_for_measurement = false;
     bool ready_to_sample = true;
     bool calibrated = false;
@@ -96,6 +105,7 @@ private:
     double map_ratio = 1.2 / ((double) 0x001FFFFF);
     uint32_t current_rf_value = 0x06;
     uint32_t current_led_i_value = 0x1A;
+    int prev_bpm = 0;
 
     uint32_t dc_red;
     uint32_t dc_ir;
@@ -465,6 +475,7 @@ public:
         red_signal.resize(MEASUREMENT_WINDOW_SIZE);
         ir_signal.resize(MEASUREMENT_WINDOW_SIZE);
         display_signal.resize(MEASUREMENT_WINDOW_SIZE);
+        bpm.resize(15);
         init_sampler();
         if (!self_check()) {
             // Error condition. CONTROL1 should be non-zero
@@ -473,7 +484,8 @@ public:
         } else {
             signalTrace = new SignalTrace(row,column,len,width,RA8875_BLACK,RA8875_GREEN,1400000,1800000,&display_signal,tft,300);
         }
-        numview = new LargeNumberView(row + 2,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
+        numview = new LargeNumberView(row + 5,column + width,len,3,RA8875_BLACK,RA8875_GREEN,true,0, tft);
+        pulse_threshold = signalTrace->real_len / 2;
         state = idle;
     }
 
@@ -498,10 +510,56 @@ public:
 
         NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
         // TODO: come back to these priority levels.
-        NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
-        NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
+        NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x02;
+        NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x02;
         NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&NVIC_InitStruct);
+    }
+
+    void pulse_rate_check(int32_t new_val) {
+		int adjusted_new_val = (new_val - signalTrace->min_signal_value);
+		int display_val = adjusted_new_val * real_len;
+		display_val /= (signalTrace->max_signal_value - signalTrace->min_signal_value);
+		if (display_val > signalTrace->real_len) { display_val = signalTrace->real_len; }
+		else if (display_val < 0) { display_val = 0; }
+        switch(pulse_state) {
+            case up:
+                if (display_val < pulse_threshold) {
+                    pulse_state = down;
+                    break;
+                }
+                break;
+            case down:
+                if (display_val > pulse_threshold) {
+                    pulse_state = complete;
+                    /* c.print(pulse_clock); */
+                    /* c.print("\n"); */
+                    /* float pulse_period = pulse_clock * 8235294 / SystemCoreClock; */
+                    /* float pulse_frequency = (float) SystemCoreClock / (float) (pulse_clock * 8235 / 1.35); */
+                    float pulse_frequency = (float) SystemCoreClock / (float) (pulse_clock * 374);
+                    /* bpm = pulse_period != 0 ? (int) ((float) 60 / (float) pulse_period) : 0; */
+                    bpm.add((int) floor(60.0 * pulse_frequency / 100.0));
+                    /* c.print("BPM: "); */
+                    /* c.print(bpm[0]); */
+                    /* c.print(", Pulse Frequency: "); */
+                    /* c.print(pulse_frequency); */
+                    /* c.print(", Display Value: "); */
+                    /* c.print(display_val); */
+                    /* c.print(", Threshold: "); */
+                    /* c.print(pulse_threshold); */
+                    /* c.print("\n"); */
+                    pulse_clock = 0;
+                    break;
+                }
+                break;
+            case complete:
+                if (display_val > pulse_threshold) {
+                    pulse_state = up;
+                    break;
+                }
+                pulse_clock = 0;
+                break;
+        }
     }
 
     bool can_sample(void) {
@@ -512,7 +570,6 @@ public:
         int32_t ir_raw_data = getLED1Data();
         int32_t ir_data = filter_ir(ir_raw_data);
         int32_t display_val = filter_display(ir_raw_data) + 500;
-        /* int display_val = ir_data + 500; */
         display_signal.add(display_val);
         red_signal.add((int32_t)filter_red(getLED2Data()));
         bool ready = ir_signal.add(ir_data);
@@ -524,6 +581,7 @@ public:
     void update() {
         numview->update();
         signalTrace->update();
+        pulse_rate_check(display_signal[0]);
         switch(state) {
             case off:
                 break;
@@ -598,20 +656,20 @@ public:
             {
                 int scaling_factor = 1000;
                 int lambda = ((scaling_factor * ac_rms_red * dc_ir) / dc_red) / (ac_rms_ir);
-                /* c.print("Lambda value is: "); */
                 // TODO: get two volunteers w/different pulse ox levels, use as phantoms to calibrate
                 // See what kind of response you can get
                 c.print(lambda);
                 c.print("\n");
-                /* int new_measurement = 107 - (((25*ac_rms_red*dc_ir) / ac_rms_ir) / dc_red); */
                 int new_measurement = 107*scaling_factor - lambda;
-                /* c.print("Pulseox value is: "); */
-                /* c.print(new_measurement); */
-                /* c.print("\n"); */
                 if (new_measurement > 100) { new_measurement = 100; }
                 numview->changeNumber(new_measurement);
                 ready_for_measurement = false;
                 state = idle;
+                int mean_bpm = mean(bpm);
+                if (mean_bpm != prev_bpm) {
+                    heartrate.changeNumber(mean_bpm);
+                    prev_bpm = mean_bpm;
+                }
                 break;
             }
         }
@@ -660,76 +718,45 @@ public:
         // new mean every time (sampling is disabled). IF calibration ends up being
         // required, you'll need a better fix for this.
 
+        // Algorithm Presets:
         // 1. Set R_f to 1MOhm
-        /* setCancellationFilters(0x06); */
-
         // 2. Set LED drive current to 5mA
-        /* setLEDCurrent(0x1A); */
-        /* setLEDCurrent(0xFF); */
 
         int iter_count = 0;
         double error = 80000;
         while(1) {
-            /* float dc = mapValueToVoltage(mean(ir_signal)); */
             ready_to_sample = true;
             num_samples = 0;
             tally_samples = true;
             delay(100000);
             tally_samples = false;
-            /* c.print("Number of samples logged during calibration step: "); */
-            /* c.print(num_samples); */
-            /* c.print("\n"); */
             ready_to_sample = false;
             int32_t dc = mean(ir_signal, 100);
             if (((dc - dc_goal < error) && (dc > dc_goal)) || ((dc_goal - dc < error) && (dc_goal > dc))) {
-                /* ready_to_sample = true; */
-                /* c.print("DC value "); */
-                /* c.print(dc); */
-                /* c.print(" is within goal "); */
-                /* c.print(dc_goal); */
-                /* c.print("\n"); */
                 return true;
             }
             else if (dc < dc_goal) {
                 // Increase LED current
-                /* ready_to_sample = true; */
-                /* c.print("DC value "); */
-                /* c.print(dc); */
-                /* c.print(" is less than goal "); */
-                /* c.print(dc_goal); */
-                /* c.print("\n"); */
                 if (current_led_i_value == 0xFF) {
                     current_rf_value += 1;
                     setCancellationFilters(current_rf_value);
-                    /* c.print("Increasing Rf value\n"); */
                     if (current_rf_value == 0xFF) { return false; }
                 } else {
-                    current_led_i_value += 2;
+                    current_led_i_value += 1;
                     setLEDCurrent(current_led_i_value);
-                    /* c.print("Increasing LED brightness\n"); */
                 }
             }
             else {
-                /* ready_to_sample = true; */
-                /* c.print("DC value "); */
-                /* c.print(dc); */
-                /* c.print(" is greater than goal "); */
-                /* c.print(dc_goal); */
-                /* c.print("\n"); */
                 // Reduce Rf (i.e. reduce TIA display_gain) or
                 // reduce LEDs if Rf can't be modified any more
                 if (current_rf_value <= 1) {
-                    current_led_i_value -= 2;
+                    current_led_i_value -= 1;
                     setLEDCurrent(current_led_i_value);
-                    /* c.print("Decreasing LED brightness\n"); */
                     if (current_led_i_value == 0) { return false; }
-                    /* return false; */
                 }
                 else {
-                    /* current_rf_value -= 1; */
                     current_rf_value -= 1;
                     setCancellationFilters(current_rf_value);
-                    /* c.print("Decrease Rf value\n"); */
                 }
             }
             // Timeout if calibration isn't done in time.
