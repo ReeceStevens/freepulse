@@ -12,7 +12,7 @@
 
 extern Console c;
 
-const int BIG_DELAY = 100;
+const int BIG_DELAY = 400;
 
 enum NIBPState {
     inflate, measure, calculate, done, start, error, na
@@ -49,6 +49,7 @@ private:
 	int background_color;
 	int sampling_rate;
     int goal_pressure;
+    double offset = -605;
     bool sampling = true;
     int rms_window_size = 1000;
     Vector<double> pulse_rms_measurements;
@@ -163,14 +164,9 @@ private:
      * Output is pressure in mmHg.
      */
     int calibrate(double input_value) {
-        /* FreePulse 1 */
         double m = 0.3998;
-        double b = -644;
-        /* FreePulse 4 */
-        /* double m = 1.126; */
-        /* double b = -1.103; */
-        return (int) (m*input_value + b);
-        /* return input_value; */
+        int calibrated_value = (int) (m*input_value + offset);
+        return calibrated_value < 0 ? 0 : calibrated_value;
     };
 
     int max_idx(Vector<double> a) {
@@ -239,8 +235,7 @@ public:
         sandbox->add(button);
         systolic = new LargeNumberView(row, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
         diastolic = new LargeNumberView(row + 2, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
-        digitalWrite(valve_out, LOW);
-
+        open_valve();
 	}
 
 	void enable() {
@@ -290,33 +285,23 @@ public:
         double scale_factor = ((double) real_len) / 300.0;
         return (int) (raw_signal*scale_factor);
     }
-    
-    int getRecentAvg(int length) {
-		/* uint32_t prim = __get_PRIMASK(); */
+
+    int getRecentAvg(CircleBuffer<int> buffer, int length) {
         int sum = 0;
         sampling = false;
-		/* __disable_irq(); */
         for (int i = 0; i < length; i ++) {
-            sum += calibrate(pressure_fifo[i]); 
+            sum += calibrate(buffer[i]); 
         }
         sampling = true;
-		/* if (!prim) { */ 
-		/* 	__enable_irq(); */
-		/* } */
         return sum / length;
     }
 
     double getPulsePressureRMS(int window) {
-		/* uint32_t prim = __get_PRIMASK(); */
-		/* __disable_irq(); */
         sampling = false;
         int* pulse_data = new int[window];
         for (int i = 0; i < window; i ++) {
             pulse_data[i] = pulse_fifo[i];
         }
-		/* if (!prim) { */ 
-		/* 	__enable_irq(); */
-		/* } */
         sampling = true;
         double retval = rms(pulse_data, window);
         delete [] pulse_data;
@@ -348,18 +333,20 @@ public:
             case inflate:
             {
                 if (prev_state != state) {
+                    int avg_open_valve_pressure = getRecentAvg(pressure_fifo, 5);
+                    offset -= avg_open_valve_pressure;
                     close_valve(); // Close the valve
                     prev_state = state;
                     goal_pressure = 150;
                     title->changeText("Inflating...");
                     button->changeText("Cancel");
                     button->changeColor(RA8875_RED);
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 5);
                     value->changeText(avg_pressure);
                     draw();
                 }
                 else {
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 5);
                     value->changeText(avg_pressure);
                     if (avg_pressure > goal_pressure) {
                         state = measure;
@@ -386,9 +373,9 @@ public:
                     pulse_rms_measurements.empty();
                 }
                 else {
-                    int avg_pressure = getRecentAvg(3);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 8);
                     value->changeText(avg_pressure);
-                    if (goal_pressure < 20) {
+                    if (goal_pressure < 40) {
                         // Finished! Validate measurements
                         // and perform calculations.
                         // For now, print out the array.
@@ -400,8 +387,10 @@ public:
                         c.print("];\n");
                         state = calculate;
                     }
-                    if (avg_pressure < goal_pressure) {
+                    if (avg_pressure < goal_pressure + 7) {
                         close_valve(); // Close valve for measurement
+                    }
+                    if (avg_pressure < goal_pressure) {
                         if (delay_counter < BIG_DELAY) {
                              delay_counter++; 
                              break;
@@ -412,7 +401,9 @@ public:
                         // 1. Get the RMS value
                         double rms_val = getPulsePressureRMS(rms_window_size);
                         c.print(rms_val);
-                        c.print("\n");
+                        c.print(" at pressure ");
+                        c.print(avg_pressure);
+                        c.print("mmHg\n");
                         // 2. Store it in the pulse pressure array
                         pulse_rms_measurements.push_back(rms_val);
                         pressure_measurements.push_back(avg_pressure);
@@ -436,17 +427,17 @@ public:
                 double rms_max = max(pulse_rms_measurements);
                 double rms_min = min(pulse_rms_measurements);
                 double goal_rms_dia = ((rms_max - rms_min) * 2 / 3) + rms_min;
-                double goal_rms_sys = ((rms_max - rms_min) / 3) + rms_min;
-                // Find diastolic 
+                double goal_rms_sys = ((rms_max - rms_min) * 2 / 3) + rms_min;
+                // Find diastolic
                 // Start searching one after the MAP, and throw away the last measurement
                 int closest_pressure = -1;
                 int last_above = -1;
                 int first_below = -1;
                 for (int i = rms_max_idx + 1; i < pulse_rms_measurements.size() - 1; i ++) {
                     if (closest_pressure == -1) {
-                        closest_pressure = pressure_measurements[i];
-                        if (closest_pressure >= goal_rms_dia) { last_above = i; }
-                        else { last_above = i - 1; }
+                        closest_pressure = i;
+                        if (pulse_rms_measurements[closest_pressure] >= goal_rms_sys) { last_above = closest_pressure; }
+                        else { last_above = i + 1; }
                     } else {
                         double new_error = pulse_rms_measurements[i] - goal_rms_dia;
                         if (new_error >= 0) { last_above = i; }
@@ -466,8 +457,8 @@ public:
                 first_below = -1;
                 for (int i = rms_max_idx - 1; i >= 0; i --) {
                     if (closest_pressure == -1) {
-                        closest_pressure = pressure_measurements[i];
-                        if (closest_pressure >= goal_rms_sys) { last_above = closest_pressure; }
+                        closest_pressure = i;
+                        if (pulse_rms_measurements[closest_pressure] >= goal_rms_sys) { last_above = closest_pressure; }
                         else { last_above = i + 1; }
                     } else {
                         double new_error = pulse_rms_measurements[i] - goal_rms_sys;
