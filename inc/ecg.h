@@ -64,7 +64,7 @@ private:
 				xs[i+1][0] = y;	
 			}
 		}
-		return y/10 - 1500; 
+		return y/10 - 1000;
 	}
 
 
@@ -76,7 +76,7 @@ public:
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
 				ScreenElement(row,column,len,width,tft), pn(pn), trace_color(trace_color),
 			   	background_color(background_color), sampling_rate(sampling_rate), timx(timx) {
-        signalTrace = new SignalTrace(row,column,len,width,background_color,trace_color,0,max_signal_value,&fifo,tft);
+        signalTrace = new SignalTrace(row,column,len,width,background_color,trace_color,0,max_signal_value,&fifo,tft, 100);
 		fifo_size = real_width;
 		fifo.resize(fifo_size);
 		scaling_factor = real_len;
@@ -90,6 +90,7 @@ public:
 
 	int read(void) {
 		int ecg_data = filter(analogRead(pn));
+		/* int ecg_data = analogRead(pn); */
 		fifo.add(ecg_data);
 		return ecg_data;
 	}

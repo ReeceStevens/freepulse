@@ -6,6 +6,9 @@
 #include "CircleBuffer.h"
 #include "Vector.h"
 
+extern Console c;
+
+#define MAX_INT 2147483647
 
 class ScreenElement {
 protected:
@@ -187,8 +190,10 @@ public:
     }
 
     void changeNumber(int new_value) {
-        value = new_value;
-        has_updated = true;
+        if (value != new_value) {
+            value = new_value;
+            has_updated = true;
+        }
     }
 
 };
@@ -199,25 +204,43 @@ private:
     int background_color;
     int trace_color;
     int display_cursor = 0;
+    int localmax = 0;
+    int localmin = MAX_INT;
     int last_val;
+    int padding = 0;
+
+public:
     int max_signal_value = 4096;
     int min_signal_value = 0;
 
-public:
     SignalTrace(int row, int column, int len, int width, int background_color, int trace_color, 
-                int min_signal_value, int max_signal_value, CircleBuffer<int>* displayData, Display* tft):
+                int min_signal_value, int max_signal_value, CircleBuffer<int>* displayData, Display* tft, int padding):
                 ScreenElement(row,column,len,width,tft), displayData(displayData), background_color(background_color), 
-                trace_color(trace_color), max_signal_value(max_signal_value), min_signal_value(min_signal_value) {}
+                trace_color(trace_color), padding(padding),max_signal_value(max_signal_value), min_signal_value(min_signal_value){}
 
     void draw(void) {
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
 	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
     }
 
+    void reset_bounds(){
+        if (display_cursor == real_width -1) {
+            // Use local optima to define bounds
+            this->max_signal_value = localmax + padding;
+            this->min_signal_value = localmin - padding;
+            // Reset bounds for next loop
+            localmax = 0;
+            localmin = MAX_INT;
+        }
+    }
+
     void update(void) {
-		int new_val = ((*displayData)[0] - min_signal_value);
+		int new_val = (*displayData)[0];
+        if (new_val > localmax) { localmax = new_val; }
+        if (new_val < localmin) { localmin = new_val; }
+		int adjusted_new_val = (new_val - min_signal_value);
 		int threshold = 5;
-		int display = new_val * real_len;
+		int display = adjusted_new_val * real_len;
 		display /= (max_signal_value - min_signal_value);
 		if (display > real_len) { display = real_len; }
 		else if (display < 0) { display = 0; }
@@ -233,7 +256,8 @@ public:
 		}
 		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
 		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
-		last_val = new_val;
+        reset_bounds();
+		last_val = adjusted_new_val;
     }
 
 };

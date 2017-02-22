@@ -50,7 +50,7 @@ void pinMode(Pin_Num pin, int mode) {
       @args RST[in] Location of the reset pin
 */
 /**************************************************************************/
-Adafruit_RA8875::Adafruit_RA8875(Pin_Num CS, Pin_Num RST, SPI_Interface* SPI) : Adafruit_GFX(800, 480), _cs(CS), _rst(RST), SPI(SPI) {}
+Adafruit_RA8875::Adafruit_RA8875(Pin_Num CS, Pin_Num RST, Pin_Num WAIT, SPI_Interface* SPI) : Adafruit_GFX(800, 480), _cs(CS), _rst(RST), _wait(WAIT), SPI(SPI) {}
 
 /**************************************************************************/
 /*!
@@ -1211,7 +1211,7 @@ uint8_t  Adafruit_RA8875::readReg(uint8_t reg)
 /**************************************************************************/
 void  Adafruit_RA8875::writeData(uint8_t d) 
 {
-  while (!digitalRead(PC3)) {} // Wait until no longer busy
+  while (!digitalRead(_wait)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_DATAWRITE);
   SPI->transfer(d);
@@ -1225,7 +1225,7 @@ void  Adafruit_RA8875::writeData(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readData(void) 
 {
-  while (!digitalRead(PC3)) {} // Wait until no longer busy
+  while (!digitalRead(_wait)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_DATAREAD);
   uint8_t x = SPI->transfer(0x0);
@@ -1240,7 +1240,7 @@ uint8_t  Adafruit_RA8875::readData(void)
 /**************************************************************************/
 void  Adafruit_RA8875::writeCommand(uint8_t d) 
 {
-  while (!digitalRead(PC3)) {} // Wait until no longer busy
+  while (!digitalRead(_wait)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_CMDWRITE);
   SPI->transfer(d);
@@ -1254,7 +1254,7 @@ void  Adafruit_RA8875::writeCommand(uint8_t d)
 /**************************************************************************/
 uint8_t  Adafruit_RA8875::readStatus(void) 
 { 
-  while (!digitalRead(PC3)) {} // Wait until no longer busy
+  while (!digitalRead(_wait)) {} // Wait until no longer busy
   digitalWrite(_cs, LOW);
   SPI->transfer(RA8875_CMDREAD);
   uint8_t x = SPI->transfer(0x0);

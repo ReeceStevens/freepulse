@@ -84,6 +84,12 @@ public:
 				break;
 			case spi_c4:
 				RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI4, ENABLE);
+                configure_GPIO(PB13, NO_PU_PD, ALT); 
+                configure_GPIO(PA11, NO_PU_PD, ALT); 
+                configure_GPIO(PA1, NO_PU_PD, ALT); 
+                GPIO_PinAFConfig(GPIOB, GPIO_PinSource13, GPIO_AF6_SPI4); // SCLK
+                GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF6_SPI4); // MISO
+                GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_SPI4); // MOSI
 				break;
 			case spi_c5:
 				RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI5, ENABLE);

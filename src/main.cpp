@@ -1,7 +1,8 @@
 #include "System.h"
 #include "Display.h"
 
-Console c(USART2, 115200);
+Console c(USART1, 115200);
+volatile uint32_t pulse_clock = 0;
 #include "interface.h"
 #include "Signals.h"
 
@@ -14,34 +15,48 @@ Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
-		int val = ecg.read();
+		/* int val = ecg.read(); */
+        /* c.print(val); */
+        /* c.print("\n"); */
 		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
 	}
 }
 
 extern "C" void TIM4_IRQHandler(void) {
 	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
+		if(nibp.can_sample()) {
+            nibp.read();
+            /* c.print(nibp.read()); */
+            /* c.print("\n"); */
+        }
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-		int val = nibp.read();
 	}
 }
 
-extern "C" void EXTI9_5_IRQHandler(void) {
-    if (EXTI_GetITStatus(EXTI_Line8) != RESET) {
-        if (spo2.can_sample()) { spo2.sample(); }
-        EXTI_ClearITPendingBit(EXTI_Line8);
+extern "C" void EXTI15_10_IRQHandler(void) {
+    if (EXTI_GetITStatus(EXTI_Line14) != RESET) {
+        /* spo2.self_check(); */
+        if (spo2.can_sample()) {
+            spo2.sample();
+            if (spo2.tally_samples) spo2.num_samples += 1;
+            /* c.print(spo2.sample()); */
+            /* c.print("\n"); */
+        }
+        EXTI_ClearITPendingBit(EXTI_Line14);
     }
+}
+
+extern "C" void SysTick_Handler(void) {
+    pulse_clock += 1;
 }
 
 void MainScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
-  tft.showGrid();
   mainScreen.initialDraw();
 }
 
 void SettingsScreenInit(void){
   tft.fillScreen(RA8875_BLACK);
-  tft.showGrid();
   settingsScreen.initialDraw();
 }
 
@@ -58,6 +73,7 @@ void initDevelopmentHeartbeat(void) {
 
 void systemInit() {
     /* initDevelopmentHeartbeat(); */
+    SysTick_Config(8400);
 	adcInit();
   	tft.startup();
     composeMainScreen(mainScreen);
@@ -69,10 +85,9 @@ void systemInit() {
 int main(void)
 {
 	c.configure();
-	c.print("\n");
-	c.print("Starting FreePulse...\n");
+	/* c.print("Starting FreePulse...\n"); */
 	systemInit();
-	c.print("Welcome!\n");
+	/* c.print("Welcome!\n"); */
 	while (1) {
 		MainScreenInit();
 		delay(SHORT_DELAY);

@@ -12,7 +12,7 @@
 
 extern Console c;
 
-const int BIG_DELAY = 1000;
+const int BIG_DELAY = 400;
 
 enum NIBPState {
     inflate, measure, calculate, done, start, error, na
@@ -40,6 +40,7 @@ private:
     int delay_counter = 0;
 	Pin_Num pulse_pn;
 	Pin_Num pressure_pn;
+    Pin_Num valve_out;
 	CircleBuffer<int> pulse_fifo;
 	CircleBuffer<int> pressure_fifo;
 	int scaling_factor;
@@ -48,6 +49,8 @@ private:
 	int background_color;
 	int sampling_rate;
     int goal_pressure;
+    double offset = -605;
+    bool sampling = true;
     int rms_window_size = 1000;
     Vector<double> pulse_rms_measurements;
     Vector<int> pressure_measurements;
@@ -58,7 +61,13 @@ private:
     LargeNumberView* diastolic;
 	TimerChannel timx;
 
+    void open_valve() {
+        digitalWrite(valve_out, HIGH);
+    }
 
+    void close_valve() {
+        digitalWrite(valve_out, LOW);
+    }
 
     /*
      * IIR Butterworth filter
@@ -155,9 +164,9 @@ private:
      * Output is pressure in mmHg.
      */
     int calibrate(double input_value) {
-        double m = 0.4342;
-        double b = -745.6;
-        return (int) (m*input_value + b);
+        double m = 0.3998;
+        int calibrated_value = (int) (m*input_value + offset);
+        return calibrated_value < 0 ? 0 : calibrated_value;
     };
 
     int max_idx(Vector<double> a) {
@@ -199,9 +208,9 @@ public:
     NIBPState prev_state = na;
     Sandbox* sandbox;
 
-    NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn,
+    NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn, Pin_Num valve_out,
 				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
-				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), 
+				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), valve_out(valve_out),
                 trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate),
                 timx(timx) {
 		fifo_size = 1000;
@@ -216,6 +225,7 @@ public:
 		scaling_factor = real_len;
 		configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
 		configure_GPIO(pressure_pn, NO_PU_PD, ANALOG);
+		configure_GPIO(valve_out, NO_PU_PD, OUTPUT);
         sandbox = new Sandbox(row,column,len,width,background_color,tft);
         title = new TextBox(row,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
         value = new TextBox(row+1,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
@@ -225,7 +235,7 @@ public:
         sandbox->add(button);
         systolic = new LargeNumberView(row, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
         diastolic = new LargeNumberView(row + 2, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
-
+        open_valve();
 	}
 
 	void enable() {
@@ -275,30 +285,24 @@ public:
         double scale_factor = ((double) real_len) / 300.0;
         return (int) (raw_signal*scale_factor);
     }
-    
-    int getRecentAvg(int length) {
-		uint32_t prim = __get_PRIMASK();
+
+    int getRecentAvg(CircleBuffer<int> buffer, int length) {
         int sum = 0;
-		__disable_irq();
+        sampling = false;
         for (int i = 0; i < length; i ++) {
-            sum += calibrate(pressure_fifo[i]); 
+            sum += calibrate(buffer[i]); 
         }
-		if (!prim) { 
-			__enable_irq();
-		}
+        sampling = true;
         return sum / length;
     }
 
     double getPulsePressureRMS(int window) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
+        sampling = false;
         int* pulse_data = new int[window];
         for (int i = 0; i < window; i ++) {
             pulse_data[i] = pulse_fifo[i];
         }
-		if (!prim) { 
-			__enable_irq();
-		}
+        sampling = true;
         double retval = rms(pulse_data, window);
         delete [] pulse_data;
         return retval;
@@ -309,6 +313,7 @@ public:
             case start:
             {
                 if (prev_state != state) {
+                    open_valve();
                     prev_state = state;
                     title->changeText("NIBP Test");
                     value->changeText("");
@@ -328,17 +333,20 @@ public:
             case inflate:
             {
                 if (prev_state != state) {
+                    int avg_open_valve_pressure = getRecentAvg(pressure_fifo, 5);
+                    offset -= avg_open_valve_pressure;
+                    close_valve(); // Close the valve
                     prev_state = state;
                     goal_pressure = 150;
                     title->changeText("Inflating...");
                     button->changeText("Cancel");
                     button->changeColor(RA8875_RED);
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 5);
                     value->changeText(avg_pressure);
                     draw();
                 }
                 else {
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 5);
                     value->changeText(avg_pressure);
                     if (avg_pressure > goal_pressure) {
                         state = measure;
@@ -365,9 +373,9 @@ public:
                     pulse_rms_measurements.empty();
                 }
                 else {
-                    int avg_pressure = getRecentAvg(5);
+                    int avg_pressure = getRecentAvg(pressure_fifo, 8);
                     value->changeText(avg_pressure);
-                    if (goal_pressure < 20) {
+                    if (goal_pressure < 40) {
                         // Finished! Validate measurements
                         // and perform calculations.
                         // For now, print out the array.
@@ -379,6 +387,9 @@ public:
                         c.print("];\n");
                         state = calculate;
                     }
+                    if (avg_pressure < goal_pressure + 7) {
+                        close_valve(); // Close valve for measurement
+                    }
                     if (avg_pressure < goal_pressure) {
                         if (delay_counter < BIG_DELAY) {
                              delay_counter++; 
@@ -386,16 +397,19 @@ public:
                         } else {
                             delay_counter = 0;
                         }
-                        c.print("Measurement taken at ");
-                        c.print(avg_pressure);
-                        c.print(" mmHg\n");
+                        c.print("Measurement taken, ");
                         // 1. Get the RMS value
                         double rms_val = getPulsePressureRMS(rms_window_size);
+                        c.print(rms_val);
+                        c.print(" at pressure ");
+                        c.print(avg_pressure);
+                        c.print("mmHg\n");
                         // 2. Store it in the pulse pressure array
                         pulse_rms_measurements.push_back(rms_val);
                         pressure_measurements.push_back(avg_pressure);
                         // 3. Decrement the goal pressure by 10 mmHg.
                         goal_pressure -= 10;
+                        open_valve(); // Re-open valve
                         /* goal_pressure -= 5; */
                     }
                 }
@@ -413,17 +427,17 @@ public:
                 double rms_max = max(pulse_rms_measurements);
                 double rms_min = min(pulse_rms_measurements);
                 double goal_rms_dia = ((rms_max - rms_min) * 2 / 3) + rms_min;
-                double goal_rms_sys = ((rms_max - rms_min) / 3) + rms_min;
-                // Find diastolic 
+                double goal_rms_sys = ((rms_max - rms_min) * 2 / 3) + rms_min;
+                // Find diastolic
                 // Start searching one after the MAP, and throw away the last measurement
                 int closest_pressure = -1;
                 int last_above = -1;
                 int first_below = -1;
                 for (int i = rms_max_idx + 1; i < pulse_rms_measurements.size() - 1; i ++) {
                     if (closest_pressure == -1) {
-                        closest_pressure = pressure_measurements[i];
-                        if (closest_pressure >= goal_rms_dia) { last_above = i; }
-                        else { last_above = i - 1; }
+                        closest_pressure = i;
+                        if (pulse_rms_measurements[closest_pressure] >= goal_rms_sys) { last_above = closest_pressure; }
+                        else { last_above = i + 1; }
                     } else {
                         double new_error = pulse_rms_measurements[i] - goal_rms_dia;
                         if (new_error >= 0) { last_above = i; }
@@ -443,8 +457,8 @@ public:
                 first_below = -1;
                 for (int i = rms_max_idx - 1; i >= 0; i --) {
                     if (closest_pressure == -1) {
-                        closest_pressure = pressure_measurements[i];
-                        if (closest_pressure >= goal_rms_sys) { last_above = closest_pressure; }
+                        closest_pressure = i;
+                        if (pulse_rms_measurements[closest_pressure] >= goal_rms_sys) { last_above = closest_pressure; }
                         else { last_above = i + 1; }
                     } else {
                         double new_error = pulse_rms_measurements[i] - goal_rms_sys;
@@ -501,37 +515,9 @@ public:
         }
     }
 
-    /*
-     * display_signal() -
-     * For the purposes of UX, we will only display the pulsing input.
-     */
-	void display_signal(void) {
-		uint32_t prim = __get_PRIMASK();
-		__disable_irq();
-		int new_val = pulse_fifo.newest();
-		if (!prim) { 
-			__enable_irq();
-		}
-		int threshold = 30;
-        /* int display = scale(new_val); */
-        int display = new_val * real_len;
-        display /= 3000;
-		if (display > real_len) { display = real_len; }
-		else if (display < 0) { display = 0; }
-		int old_display = last_val * real_len;
-		old_display /= 3000;
-		if (old_display > real_len) { old_display = real_len; }
-		else if (old_display < 0) { old_display = 0; }
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
-		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
-			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		} else {
-			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		}
-		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
-		last_val = new_val;
-	}
+    bool can_sample(void) {
+        return sampling;
+    }
 };
 
 #endif

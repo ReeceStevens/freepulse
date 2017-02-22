@@ -11,8 +11,21 @@ the [development blog][blog].
 
 ![alpha_prototype](resources/prototype.jpg)
 
-Navigating the Repository
--------------------------
+## Current Goals and Notes
+
+- Determine better SpO2 calibration timing (currently only calibrate after reset)
+
+- Fix pulse oximeter readings (currently unstable). Develop a LUT or fitting
+  strategy?
+
+- Fix blood pressure inconsistencies. Look at patient data to determine where
+  the failures lie.
+
+- Add "recurring measurement" timer to NIBP module (i.e. "take a blood pressure
+  measurement every five minutes" during surgery)
+
+## Navigating the Repository
+
 ```
 src
   |- Contains main.cpp
