@@ -1,7 +1,7 @@
 #ifndef _screen_element_h_
 #define _screen_element_h_
 
-#include "System.h"
+#include "UART.h"
 #include "Display.h"
 #include "CircleBuffer.h"
 #include "Vector.h"

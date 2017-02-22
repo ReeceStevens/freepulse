@@ -10,6 +10,7 @@
 #define __Display_h__ 
 
 #include "SPI.h"
+#include "Utils.h"
 #include "Adafruit_RA8875.h"
 
 #define RA8875_GREENYELLOW 0xAFE5      

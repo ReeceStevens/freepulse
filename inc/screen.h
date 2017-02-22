@@ -1,6 +1,7 @@
 #ifndef __Screen_h__
 #define __Screen_h__
 
+#include "Utils.h"
 #include "Vector.h"
 #include "ScreenElement.h"
 

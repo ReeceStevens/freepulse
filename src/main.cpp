@@ -1,5 +1,7 @@
-#include "System.h"
+#include "UART.h"
+#include "Timer.h"
 #include "Display.h"
+#include "Utils.h"
 
 Console c(USART1, 115200);
 volatile uint32_t pulse_clock = 0;
@@ -74,7 +76,7 @@ void initDevelopmentHeartbeat(void) {
 void systemInit() {
     /* initDevelopmentHeartbeat(); */
     SysTick_Config(8400);
-	adcInit();
+	initialize_ADCs();
   	tft.startup();
     composeMainScreen(mainScreen);
     composeSettingsScreen(settingsScreen);

@@ -4,7 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "System.h"
+#include "GPIO.h"
+#include "UART.h"
+#include "Utils.h"
+#include "Timer.h"
 #include "CircleBuffer.h"
 #include "interface.h"
 #include "misc.h"
@@ -239,8 +242,7 @@ public:
 	}
 
 	void enable() {
-		Sampler sampler(sampling_rate, timx);
-		sampler.enable();
+		enable_timer(sampling_rate, timx);
 	}
 
 	void draw_border(void){

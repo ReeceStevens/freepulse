@@ -6,11 +6,15 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "stm32f4xx_exti.h"
+#include "Utils.h"
 #include "SPI.h"
+#include "GPIO.h"
 #include "Display.h"
 #include "ScreenElement.h"
 #include "Vector.h"
+#include "misc.h"
+
+#include "stm32f4xx_exti.h"
 
 /* Useful commands */
 #define SW_RST          0x04

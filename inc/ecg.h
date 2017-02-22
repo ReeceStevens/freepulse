@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "System.h"
+
+#include "GPIO.h"
+#include "Timer.h"
 #include "CircleBuffer.h"
 #include "ScreenElement.h"
 #include "misc.h"
@@ -84,8 +86,7 @@ public:
 	}
 
 	void enable() {
-		Sampler sampler(sampling_rate, timx);
-		sampler.enable();
+        enable_timer(sampling_rate, timx);
 	}
 
 	int read(void) {

@@ -24,9 +24,10 @@
     v1.0 - First release
 */
 /**************************************************************************/
+#include "GPIO.h"
 #include "SPI.h"
-#include "System.h"
 #include "Adafruit_RA8875.h"
+#include "Utils.h"
 
 /* void delay(int time); */
 #define HIGH 1

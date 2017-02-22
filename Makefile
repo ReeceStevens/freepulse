@@ -16,7 +16,7 @@ PERIPH_DRIVERS_DIR = /home/reece/projects/freepulse/tools/STM32F4_STANDARD_PERIP
 SRC_DIRS = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/src
 SRC_DIRS += $(PERIPH_DRIVERS_DIR)/CMSIS/Device/ST/STM32F4xx/src
 SRC_DIRS += ./libraries/src
-SRC_DIRS += ./system/src 
+SRC_DIRS += ./system/src
 SRC_DIRS += ./src
 
 # Tell make to look in that folder if it cannot find a source
@@ -37,6 +37,8 @@ SRCS  += stm32f4xx_exti.c
 SRCS  += misc.c
 SRCS  += Adafruit_RA8875.cpp
 SRCS  += Adafruit_GFX.cpp
+SRCS  += Timer.cpp
+SRCS  += GPIO.cpp
 SRCS  += startup.s
 
 INC_DIRS  = $(PERIPH_DRIVERS_DIR)/STM32F4xx_StdPeriph_Driver_working/inc
