@@ -7,6 +7,7 @@ import ycm_core
 flags = [
 '-g', 
 '-Wall',
+'-DDEBUG',
 '-I', '/home/reece/projects/freepulse/freepulse/inc',
 '-I', '/home/reece/projects/freepulse/freepulse/libraries/inc',
 '-I', '/home/reece/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0/Utilities/STM32F4-Discovery',
