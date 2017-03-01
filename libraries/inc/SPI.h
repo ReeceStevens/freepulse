@@ -1,4 +1,3 @@
-
 #ifndef __SPI_h__
 #define __SPI_h__
 

@@ -34,21 +34,21 @@ double rms(int* vals, int window) {
 
 class NIBPReadout : public ScreenElement {
 private:
-	int fifo_size;
-	int avg_size;
-	int avg_cursor;
-	int display_cursor;
+    int fifo_size;
+    int avg_size;
+    int avg_cursor;
+    int display_cursor;
     int delay_counter = 0;
-	Pin_Num pulse_pn;
-	Pin_Num pressure_pn;
+    Pin_Num pulse_pn;
+    Pin_Num pressure_pn;
     Pin_Num valve_out;
-	CircleBuffer<int> pulse_fifo;
-	CircleBuffer<int> pressure_fifo;
-	int scaling_factor;
-	Vector<int> avg_queue;
-	int trace_color;
-	int background_color;
-	int sampling_rate;
+    CircleBuffer<int> pulse_fifo;
+    CircleBuffer<int> pressure_fifo;
+    int scaling_factor;
+    Vector<int> avg_queue;
+    int trace_color;
+    int background_color;
+    int sampling_rate;
     int goal_pressure;
     double offset = -605;
     bool sampling = true;
@@ -60,7 +60,7 @@ private:
     Button* button;
     LargeNumberView* systolic;
     LargeNumberView* diastolic;
-	TimerChannel timx;
+    TimerChannel timx;
 
     void open_valve() {
         digitalWrite(valve_out, HIGH);
@@ -75,90 +75,90 @@ private:
      * Fs = 500 Hz
      * Fc = 10 Hz
      */
-	double pulse_sos_filter[3][6] = {
-		{1, 2, 1, 1, -1.9102, 0.9254},
-		{1, 2, 1, 1, -1.8016, 0.8159},
-		{1, 1, 0, 1, -0.8816, 0.0}
-	};
+    double pulse_sos_filter[3][6] = {
+        {1, 2, 1, 1, -1.9102, 0.9254},
+        {1, 2, 1, 1, -1.8016, 0.8159},
+        {1, 1, 0, 1, -0.8816, 0.0}
+    };
 
     /*
      * IIR Butterworth filter
      * Fs = 500 Hz
      * Fc = 5 Hz
      */
-	double pressure_sos_filter[3][6] = {
-		{1, 2, 1, 1, -1.9581, 0.9619},
-		{1, 2, 1, 1, -1.8996, 0.9033},
-		{1, 1, 0, 1, -0.9391, 0.0}
-	};
+    double pressure_sos_filter[3][6] = {
+        {1, 2, 1, 1, -1.9581, 0.9619},
+        {1, 2, 1, 1, -1.8996, 0.9033},
+        {1, 1, 0, 1, -0.9391, 0.0}
+    };
 
-	double pulse_gain[3] = {0.0038, 0.0036, 0.0592};
-	double pressure_gain[3] = {0.00097, 0.00094, 0.0305};
+    double pulse_gain[3] = {0.0038, 0.0036, 0.0592};
+    double pressure_gain[3] = {0.00097, 0.00094, 0.0305};
 
 
-	double xs1[3][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	double ws1[3][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
+    double xs1[3][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    double ws1[3][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
 
-	double filter_pulse(int x, double sos_filter[3][6], double gain[3]) {
-		xs1[0][0] = (double) x;
-		double y;
-		for (int i = 0; i < 3; i ++){
-			xs1[i][0] *= gain[i];
-			// Apply SOS
-			ws1[i][0] = xs1[i][0] - sos_filter[i][4]*ws1[i][1] - sos_filter[i][5]*ws1[i][2];
-			y = sos_filter[i][0]*ws1[i][0] + sos_filter[i][1]*ws1[i][1] + sos_filter[i][2]*ws1[i][2]; 
-			// Shift coefficients
-			xs1[i][2] = xs1[i][1];
-			xs1[i][1] = xs1[i][0];
-			ws1[i][2] = ws1[i][1];
-			ws1[i][1] = ws1[i][0];
-			// Carry over to next section
-			if (i != 2) {
-				xs1[i+1][0] = y;	
-			}
-		}
-		return y; 
-	}
+    double filter_pulse(int x, double sos_filter[3][6], double gain[3]) {
+        xs1[0][0] = (double) x;
+        double y;
+        for (int i = 0; i < 3; i ++){
+            xs1[i][0] *= gain[i];
+            // Apply SOS
+            ws1[i][0] = xs1[i][0] - sos_filter[i][4]*ws1[i][1] - sos_filter[i][5]*ws1[i][2];
+            y = sos_filter[i][0]*ws1[i][0] + sos_filter[i][1]*ws1[i][1] + sos_filter[i][2]*ws1[i][2]; 
+            // Shift coefficients
+            xs1[i][2] = xs1[i][1];
+            xs1[i][1] = xs1[i][0];
+            ws1[i][2] = ws1[i][1];
+            ws1[i][1] = ws1[i][0];
+            // Carry over to next section
+            if (i != 2) {
+                xs1[i+1][0] = y;    
+            }
+        }
+        return y; 
+    }
 
-	double xs2[3][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	double ws2[3][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
+    double xs2[3][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    double ws2[3][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
 
-	double filter_pressure(int x, double sos_filter[3][6], double gain[3]) {
-		xs2[0][0] = (double) x;
-		double y;
-		for (int i = 0; i < 3; i ++){
-			xs2[i][0] *= gain[i];
-			// Apply SOS
-			ws2[i][0] = xs2[i][0] - sos_filter[i][4]*ws2[i][1] - sos_filter[i][5]*ws2[i][2];
-			y = sos_filter[i][0]*ws2[i][0] + sos_filter[i][1]*ws2[i][1] + sos_filter[i][2]*ws2[i][2]; 
-			// Shift coefficients
-			xs2[i][2] = xs2[i][1];
-			xs2[i][1] = xs2[i][0];
-			ws2[i][2] = ws2[i][1];
-			ws2[i][1] = ws2[i][0];
-			// Carry over to next section
-			if (i != 2) {
-				xs2[i+1][0] = y;	
-			}
-		}
-		return y; 
-	};
+    double filter_pressure(int x, double sos_filter[3][6], double gain[3]) {
+        xs2[0][0] = (double) x;
+        double y;
+        for (int i = 0; i < 3; i ++){
+            xs2[i][0] *= gain[i];
+            // Apply SOS
+            ws2[i][0] = xs2[i][0] - sos_filter[i][4]*ws2[i][1] - sos_filter[i][5]*ws2[i][2];
+            y = sos_filter[i][0]*ws2[i][0] + sos_filter[i][1]*ws2[i][1] + sos_filter[i][2]*ws2[i][2]; 
+            // Shift coefficients
+            xs2[i][2] = xs2[i][1];
+            xs2[i][1] = xs2[i][0];
+            ws2[i][2] = ws2[i][1];
+            ws2[i][1] = ws2[i][0];
+            // Carry over to next section
+            if (i != 2) {
+                xs2[i+1][0] = y;    
+            }
+        }
+        return y; 
+    };
 
     /*
      * Calibration curve for pressure sensor.
@@ -203,30 +203,30 @@ private:
 
     }
 
-public:	
-	int last_val = 0;
+public:    
+    int last_val = 0;
     NIBPState state = start;
     NIBPState prev_state = na;
     Sandbox* sandbox;
 
     NIBPReadout(int row, int column, int len, int width, Pin_Num pulse_pn, Pin_Num pressure_pn, Pin_Num valve_out,
-				int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
-				ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), valve_out(valve_out),
+                int trace_color, int background_color, int sampling_rate, TimerChannel timx, Display* tft):
+                ScreenElement(row,column,len,width,tft), pulse_pn(pulse_pn), pressure_pn(pressure_pn), valve_out(valve_out),
                 trace_color(trace_color), background_color(background_color), sampling_rate(sampling_rate),
                 timx(timx) {
-		fifo_size = 1000;
+        fifo_size = 1000;
         pressure_fifo.resize(fifo_size);
         pulse_fifo.resize(fifo_size);
         pulse_rms_measurements.resize(20);
         pressure_measurements.resize(20);
-		avg_size = 10;
-		avg_cursor = 0;
-		display_cursor = 0;
+        avg_size = 10;
+        avg_cursor = 0;
+        display_cursor = 0;
         avg_queue.resize(avg_size);
-		scaling_factor = real_len;
-		configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
-		configure_GPIO(pressure_pn, NO_PU_PD, ANALOG);
-		configure_GPIO(valve_out, NO_PU_PD, OUTPUT);
+        scaling_factor = real_len;
+        configure_GPIO(pulse_pn, NO_PU_PD, ANALOG);
+        configure_GPIO(pressure_pn, NO_PU_PD, ANALOG);
+        configure_GPIO(valve_out, NO_PU_PD, OUTPUT);
         sandbox = new Sandbox(row,column,len,width,background_color,tft);
         title = new TextBox(row,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
         value = new TextBox(row+1,column,1,width,background_color,RA8875_WHITE,3,true,false,"",tft);
@@ -237,14 +237,14 @@ public:
         systolic = new LargeNumberView(row, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
         diastolic = new LargeNumberView(row + 2, column + 4, len, width, RA8875_BLACK, RA8875_GREEN, true, 0, tft);
         open_valve();
-	}
+    }
 
-	void enable() {
-		enable_timer(sampling_rate, timx);
-	}
+    void enable() {
+        enable_timer(sampling_rate, timx);
+    }
 
-	void draw_border(void){
-	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
+    void draw_border(void){
+        tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
     }
 
     NIBPState getState(void) {
@@ -257,7 +257,7 @@ public:
 
     void draw(void){
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
-		draw_border();
+        draw_border();
         updateInstructions();
         sandbox->draw();
         systolic->draw();
@@ -271,14 +271,14 @@ public:
         diastolic->update();
     }
 
-	int read(void) {
-		int nibp_pulse_data = filter_pulse(analogRead(pulse_pn), pulse_sos_filter, pulse_gain);
-		pulse_fifo.add(nibp_pulse_data);
-		int nibp_pressure_data = filter_pressure(analogRead(pressure_pn), pressure_sos_filter, pressure_gain);
-		pressure_fifo.add(nibp_pressure_data);
-		/* return nibp_pulse_data; // Return is only for console logging purposes */
-		return calibrate(nibp_pressure_data); // Return is only for console logging purposes
-	}
+    int read(void) {
+        int nibp_pulse_data = filter_pulse(analogRead(pulse_pn), pulse_sos_filter, pulse_gain);
+        pulse_fifo.add(nibp_pulse_data);
+        int nibp_pressure_data = filter_pressure(analogRead(pressure_pn), pressure_sos_filter, pressure_gain);
+        pressure_fifo.add(nibp_pressure_data);
+        /* return nibp_pulse_data; // Return is only for console logging purposes */
+        return calibrate(nibp_pressure_data); // Return is only for console logging purposes
+    }
 
     int scale(int raw_signal) {
         raw_signal -= 1040;

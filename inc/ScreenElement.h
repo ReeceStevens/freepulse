@@ -12,12 +12,12 @@ class ScreenElement {
 protected:
     int row;
     int column;
-	int len;
-	int width;
+    int len;
+    int width;
 
 public:
-	int coord_x;
-	int coord_y;
+    int coord_x;
+    int coord_y;
     int real_len;
     int real_width;
     Display* tft;
@@ -25,7 +25,7 @@ public:
     ScreenElement() {}
 
     ScreenElement(int row, int column, int len, int width, Display* tft):
-		row(row),column(column),len(len),width(width),tft(tft){
+        row(row),column(column),len(len),width(width),tft(tft){
         coord_x = tft->horizontal_scale*(column-1);
         coord_y = tft->vertical_scale*(row-1);
         real_len = tft->vertical_scale*len;
@@ -48,12 +48,12 @@ public:
     void (*reducer) (void);
 
     Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Display* tft, void (*reducer) (void)):
-		ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible),reducer(reducer){ 
+        ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible),reducer(reducer){ 
         lastTapped = 0;
     };
 
     void draw(void){
-	    tft->fillRect(coord_x,coord_y,real_width,real_len,color);
+        tft->fillRect(coord_x,coord_y,real_width,real_len,color);
         tft->textMode();
         tft->textSetCursor(coord_x + (real_width/5), coord_y + (real_len/2)-5);
         tft->textColor(RA8875_BLACK, color);
@@ -64,23 +64,23 @@ public:
 
     void update(){
         if (changed) { draw(); changed = false; }
-		uint16_t x = tft->touch_points[0];
-		uint16_t y = tft->touch_points[1];
-	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
-		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
+        uint16_t x = tft->touch_points[0];
+        uint16_t y = tft->touch_points[1];
+        if ((x >= coord_x) && (x <= (coord_x + real_width))){
+            if ((y >= coord_y) && (y <= (coord_y + real_len))){
                     reducer();
-		    }
-	    }
+            }
+        }
     }
 
     bool isTapped() {
-		uint16_t x = tft->touch_points[0];
-		uint16_t y = tft->touch_points[1];
-	    if ((x >= coord_x) && (x <= (coord_x + real_width))){
-		    if ((y >= coord_y) && (y <= (coord_y + real_len))){
+        uint16_t x = tft->touch_points[0];
+        uint16_t y = tft->touch_points[1];
+        if ((x >= coord_x) && (x <= (coord_x + real_width))){
+            if ((y >= coord_y) && (y <= (coord_y + real_len))){
                     return true;
-		    }
-	    }
+            }
+        }
         return false;
     }
 
@@ -106,21 +106,21 @@ private:
 
 public:
     bool visible;
-	bool outline;
+    bool outline;
 
     TextBox(int row, int column, int len, int width, int background_color, int text_color, int text_size, bool visible, bool outline, const char* str, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), text_size(text_size), str(str), visible(visible), outline(outline) { };
 
     void draw(void){
         tft->textMode();
         tft->textSetCursor(coord_x,coord_y);
-	    tft->textColor(text_color,background_color);
+        tft->textColor(text_color,background_color);
         tft->textEnlarge(1);
         tft->textWrite(" ");
         tft->textWrite(str);
         tft->graphicsMode();
-		if (outline) {
-			tft->drawRect(coord_x, coord_y, real_width, real_len, text_color);
-		}
+        if (outline) {
+            tft->drawRect(coord_x, coord_y, real_width, real_len, text_color);
+        }
     }
 
     void update(void) {
@@ -156,29 +156,29 @@ class LargeNumberView : public ScreenElement {
 private:
     int background_color;
     int text_color;
-	int value;
+    int value;
     bool has_updated = false;
 
 public:
-	bool visible;
+    bool visible;
     LargeNumberView(int row, int column, int len, int width, int background_color, int text_color, bool visible, int value, Display* tft):ScreenElement(row,column,len,width,tft), background_color(background_color), text_color(text_color), value(value), visible(visible) { };
 
-	void draw(void) {
-		int first_digit = value / 100;
-		if (first_digit != 0) {
-			tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
-		} else {
+    void draw(void) {
+        int first_digit = value / 100;
+        if (first_digit != 0) {
+            tft->printLarge(first_digit, coord_x, coord_y, text_color, background_color);
+        } else {
             tft->fillRect(coord_x, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
         }
-		int second_digit = value / 10 - first_digit * 10;
+        int second_digit = value / 10 - first_digit * 10;
         if ((first_digit != 0) || (second_digit != 0)) {
-			tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
+            tft->printLarge(second_digit, coord_x+tft->horizontal_scale, coord_y, text_color, background_color);
         } else {
             tft->fillRect(coord_x+tft->horizontal_scale, coord_y, tft->horizontal_scale, tft->vertical_scale*2, background_color);
         }
-		int third_digit = value - first_digit * 100 - second_digit * 10;
-		tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
-	}
+        int third_digit = value - first_digit * 100 - second_digit * 10;
+        tft->printLarge(third_digit, coord_x+(tft->horizontal_scale * 2), coord_y, text_color, background_color);
+    }
 
     void update(void) {
         if (has_updated) {
@@ -218,7 +218,7 @@ public:
 
     void draw(void) {
         tft->fillRect(coord_x,coord_y,real_width,real_len,background_color);
-	    tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
+        tft->drawRect(coord_x,coord_y,real_width,real_len,trace_color);
     }
 
     void reset_bounds(){
@@ -233,29 +233,29 @@ public:
     }
 
     void update(void) {
-		int new_val = (*displayData)[0];
+        int new_val = (*displayData)[0];
         if (new_val > localmax) { localmax = new_val; }
         if (new_val < localmin) { localmin = new_val; }
-		int adjusted_new_val = (new_val - min_signal_value);
-		int threshold = 5;
-		int display = adjusted_new_val * real_len;
-		display /= (max_signal_value - min_signal_value);
-		if (display > real_len) { display = real_len; }
-		else if (display < 0) { display = 0; }
-		int old_display = last_val * real_len;
-		old_display /= (max_signal_value - min_signal_value);
-		if (old_display > real_len) { old_display = real_len; }
-		else if (old_display < 0) { old_display = 0; }
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
-		if ((display - old_display > threshold) || (display - old_display < -threshold)) {
-			tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		} else {
-			tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
-		}
-		display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
-		tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
+        int adjusted_new_val = (new_val - min_signal_value);
+        int threshold = 5;
+        int display = adjusted_new_val * real_len;
+        display /= (max_signal_value - min_signal_value);
+        if (display > real_len) { display = real_len; }
+        else if (display < 0) { display = 0; }
+        int old_display = last_val * real_len;
+        old_display /= (max_signal_value - min_signal_value);
+        if (old_display > real_len) { old_display = real_len; }
+        else if (old_display < 0) { old_display = 0; }
+        tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, background_color);
+        if ((display - old_display > threshold) || (display - old_display < -threshold)) {
+            tft->drawLine(coord_x + display_cursor, coord_y + real_len - old_display, coord_x + display_cursor, coord_y + real_len - display, trace_color);
+        } else {
+            tft->drawPixel(coord_x + display_cursor, coord_y + real_len - display, trace_color);
+        }
+        display_cursor = CircleBuffer<int>::mod(display_cursor+1, real_width); // Advance display cursor
+        tft->drawFastVLine(coord_x + display_cursor, coord_y, real_len, RA8875_WHITE); // Draw display cursor
         reset_bounds();
-		last_val = adjusted_new_val;
+        last_val = adjusted_new_val;
     }
 
 };

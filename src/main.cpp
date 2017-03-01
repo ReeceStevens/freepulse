@@ -5,6 +5,7 @@
 #include "interface.h"
 #include "Signals.h"
 
+volatile uint32_t pulse_clock = 0;
 const int SHORT_DELAY = 1000;
 
 extern Display tft;
@@ -13,23 +14,19 @@ Screen mainScreen = Screen(&tft);
 Screen settingsScreen = Screen(&tft);
 
 extern "C" void TIM3_IRQHandler(void) {
-	if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
-		/* int val = ecg.read(); */
-        /* c.print(val); */
-        /* c.print("\n"); */
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-	}
+    if (TIM_GetITStatus (TIM3, TIM_IT_Update) != RESET) {
+        /* int val = ecg.read(); */
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+    }
 }
 
 extern "C" void TIM4_IRQHandler(void) {
-	if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
-		if(nibp.can_sample()) {
+    if (TIM_GetITStatus (TIM4, TIM_IT_Update) != RESET) {
+        if(nibp.can_sample()) {
             nibp.read();
-            /* c.print(nibp.read()); */
-            /* c.print("\n"); */
         }
-		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
-	}
+        TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
+    }
 }
 
 extern "C" void EXTI15_10_IRQHandler(void) {
@@ -38,8 +35,6 @@ extern "C" void EXTI15_10_IRQHandler(void) {
         if (spo2.can_sample()) {
             spo2.sample();
             if (spo2.tally_samples) spo2.num_samples += 1;
-            /* c.print(spo2.sample()); */
-            /* c.print("\n"); */
         }
         EXTI_ClearITPendingBit(EXTI_Line14);
     }
@@ -89,25 +84,25 @@ int main(void)
     logger(l_info, "Starting up...\n");
     systemInit();
     logger(l_info, "Welcome to FreePulse!\n");
-	while (1) {
-		MainScreenInit();
-		delay(SHORT_DELAY);
+    while (1) {
+        MainScreenInit();
+        delay(SHORT_DELAY);
         tft.clearTouchEvents();
-		while (currentMode == home) {
+        while (currentMode == home) {
             mainScreen.update(SHORT_DELAY);
             mainScreen.readTouch();
-			tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
-		}
-		if (currentMode == settings) {
-			SettingsScreenInit();
-			delay(SHORT_DELAY);
+            tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
+        }
+        if (currentMode == settings) {
+            SettingsScreenInit();
+            delay(SHORT_DELAY);
             tft.clearTouchEvents();
-			while (currentMode == settings) {
+            while (currentMode == settings) {
                 settingsScreen.update(SHORT_DELAY);
                 settingsScreen.readTouch();
-				tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
-			}
-		}
+                tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
+            }
+        }
     }
     return 0;
 }
