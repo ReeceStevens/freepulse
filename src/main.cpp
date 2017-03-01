@@ -74,22 +74,25 @@ void initDevelopmentHeartbeat(void) {
 }
 
 void systemInit() {
-    /* initDevelopmentHeartbeat(); */
     SysTick_Config(8400);
-	initialize_ADCs();
-  	tft.startup();
+    initialize_ADCs();
+    logger(l_info, "System timers initialized\n");
+    tft.startup();
+    logger(l_info, "Display initialized\n");
     composeMainScreen(mainScreen);
     composeSettingsScreen(settingsScreen);
     connectSignalsToScreen(mainScreen);
+    logger(l_info, "Interface initialized\n");
     enableSignalAcquisition();
+    logger(l_info, "Sampling modules started\n");
 }
 
 int main(void)
 {
-	c.configure();
-	/* c.print("Starting FreePulse...\n"); */
-	systemInit();
-	/* c.print("Welcome!\n"); */
+    initialize_logging();
+    logger(l_info, "Starting up...\n");
+    systemInit();
+    logger(l_info, "Welcome to FreePulse!\n");
 	while (1) {
 		MainScreenInit();
 		delay(SHORT_DELAY);

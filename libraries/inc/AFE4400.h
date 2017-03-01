@@ -72,7 +72,6 @@
 
 #define DIAG            0x30
 
-extern Console c;
 extern volatile uint32_t pulse_clock;
 extern LargeNumberView heartrate;
 
@@ -450,17 +449,17 @@ public:
 
     /*
      * self_check()
-     * Perform multiple reads to the CONTROL1 register and prints the reads to console.
+     * Perform multiple reads to the CONTROL1 register and logs the reads to console.
      * Finally, checks to ensure CONTROL1 register is nonzero, since it is defined to
      * always have a nonzero value.
      */
     bool self_check() {
-        c.print("Beginning Self Check... \n");
+        logger(l_info, "Beginning Self Check... \n");
         for (int i = 0; i < 5; i++) {
-            c.print(readData(CONTROL1));
-            c.print("\n");
+            logger(l_info, "%d\n", readData(CONTROL1));
+            /* logger(l_info, "\n"); */
         }
-        c.print("Finished Self Check\n");
+        logger(l_info, "Finished Self Check\n");
         return readData(CONTROL1) != 0;
     }
 
@@ -536,22 +535,13 @@ public:
             case down:
                 if (display_val > pulse_threshold) {
                     pulse_state = complete;
-                    /* c.print(pulse_clock); */
-                    /* c.print("\n"); */
+                    /*logger(l_info, "%d\n", pulse_clock); */
                     /* float pulse_period = pulse_clock * 8235294 / SystemCoreClock; */
                     /* float pulse_frequency = (float) SystemCoreClock / (float) (pulse_clock * 8235 / 1.35); */
                     float pulse_frequency = (float) SystemCoreClock / (float) (pulse_clock * 374);
                     /* bpm = pulse_period != 0 ? (int) ((float) 60 / (float) pulse_period) : 0; */
                     bpm.add((int) floor(60.0 * pulse_frequency / 100.0));
-                    /* c.print("BPM: "); */
-                    /* c.print(bpm[0]); */
-                    /* c.print(", Pulse Frequency: "); */
-                    /* c.print(pulse_frequency); */
-                    /* c.print(", Display Value: "); */
-                    /* c.print(display_val); */
-                    /* c.print(", Threshold: "); */
-                    /* c.print(pulse_threshold); */
-                    /* c.print("\n"); */
+                    /* logger(l_info, "BPM: %d, Pulse Frequency: %d, Display Value: %d, Threshold: %d\n", bpm[0], pulse_frequency, display_val, pulse_threshold); */
                     pulse_clock = 0;
                     break;
                 }
@@ -599,18 +589,18 @@ public:
             }
             case calibrating:
             {
-                /* c.print("Beginning calibration\n"); */
+                /*logger(l_info, "Beginning calibration\n"); */
                 ready_to_sample = false;
                 bool success = calibrate();
                 ready_to_sample = true;
                 if (success) {
-                    /* c.print("Calibration successful!\n"); */
+                    /*logger(l_info, "Calibration successful!\n"); */
                     state = wait;
                     calibrated = true;
                     wait_counter = 0;
                 } else {
                     // TODO: error handling for calibration
-                    /* c.print("Calibration failed :(\n"); */
+                    /*logger(l_info, "Calibration failed :(\n"); */
                     state = idle;
                 }
                 break;
@@ -621,9 +611,7 @@ public:
                     wait_counter = 0;
                     state = get_red;
                 } else {
-                    /* c.print("Waiting at tick "); */
-                    /* c.print(wait_counter); */
-                    /* c.print("\n"); */
+                    /*logger(l_info, "Waiting at tick %d\n", wait_counter); */
                     wait_counter ++;
                 }
                 break;
@@ -632,26 +620,18 @@ public:
             {
                 ready_to_sample = false;
                 dc_red = mean(red_signal);
-                /* c.print("Red DC: "); */
-                /* c.print(dc_red); */
-                /* c.print("\n"); */
+                /*logger(l_info, "Red DC: %d\n", dc_red); */
                 ac_rms_red = ac_rms(red_signal, dc_red);
-                /* c.print("Red AC: "); */
-                /* c.print(ac_rms_red); */
-                /* c.print("\n"); */
+                /*logger(l_info, "Red AC: %d\n", ac_rms_red); */
                 state = get_ir;
                 break;
             }
             case get_ir:
             {
                 dc_ir = mean(ir_signal);
-                /* c.print("IR DC: "); */
-                /* c.print(dc_ir); */
-                /* c.print("\n"); */
+                /*logger(l_info, "IR DC: %d\n", dc_ir); */
                 ac_rms_ir = ac_rms(ir_signal, dc_ir);
-                /* c.print("IR AC: "); */
-                /* c.print(ac_rms_ir); */
-                /* c.print("\n"); */
+                /*logger(l_info, "IR AC: %d\n", ac_rms_ir); */
                 ready_to_sample = true;
                 state = get_spo2;
                 break;
@@ -662,8 +642,7 @@ public:
                 int lambda = ((scaling_factor * ac_rms_red * dc_ir) / dc_red) / (ac_rms_ir);
                 // TODO: get two volunteers w/different pulse ox levels, use as phantoms to calibrate
                 // See what kind of response you can get
-                c.print(lambda);
-                c.print("\n");
+                logger(l_info, "Lambda: %d\n", lambda);
                 int new_measurement = 107*scaling_factor - lambda;
                 if (new_measurement > 100) { new_measurement = 100; }
                 numview->changeNumber(new_measurement);

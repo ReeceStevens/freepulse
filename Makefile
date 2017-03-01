@@ -1,6 +1,5 @@
 # Name of the binaries.
 PROJ_NAME=freepulse
-
 ######################################################################
 #                         SETUP SOURCES                              #
 ######################################################################
@@ -91,10 +90,20 @@ LFLAGS  = -T$(LD_DIR)/stm32_flash.ld -T$(LD_DIR)/libs.ld
 ######################################################################
 
 .PHONY: $(PROJ_NAME)
-$(PROJ_NAME): $(PROJ_NAME).elf
+$(PROJ_NAME): dev
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
+
+prod: $(SRCS)
+	$(CC) $(INCLUDE) $(DEFS) $(CFLAGS) $(LFLAGS) $^ -o $(PROJ_NAME).elf
+	$(OBJCOPY) -O ihex $(PROJ_NAME).elf   $(PROJ_NAME).hex
+	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
+
+dev: $(SRCS)
+	$(CC) $(INCLUDE) $(DEFS) -DDEBUG $(CFLAGS) $(LFLAGS) $^ -o $(PROJ_NAME).elf
+	$(OBJCOPY) -O ihex $(PROJ_NAME).elf   $(PROJ_NAME).hex
+	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
 
 $(PROJ_NAME).elf: $(SRCS)
 	$(CC) $(INCLUDE) $(DEFS) $(CFLAGS) $(LFLAGS) $^ -o $@ 

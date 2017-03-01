@@ -5,15 +5,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include "GPIO.h"
-#include "UART.h"
+#include "Console.h"
 #include "Utils.h"
 #include "Timer.h"
 #include "CircleBuffer.h"
 #include "interface.h"
 #include "misc.h"
 #include "Vector.h"
-
-extern Console c;
 
 const int BIG_DELAY = 400;
 
@@ -380,13 +378,12 @@ public:
                     if (goal_pressure < 40) {
                         // Finished! Validate measurements
                         // and perform calculations.
-                        // For now, print out the array.
-                        c.print("rms_vals = [");
+                        // For now, log out the array.
+                        logger(l_info, "rms_vals = [");
                         for (int i = 0; i < pulse_rms_measurements.size(); i ++) {
-                            c.print(pulse_rms_measurements[i]);
-                            c.print(", ");
+                            logger(l_info, "%f, ", pulse_rms_measurements[i]);
                         }
-                        c.print("];\n");
+                        logger(l_info, "];\n");
                         state = calculate;
                     }
                     if (avg_pressure < goal_pressure + 7) {
@@ -399,13 +396,13 @@ public:
                         } else {
                             delay_counter = 0;
                         }
-                        c.print("Measurement taken, ");
                         // 1. Get the RMS value
                         double rms_val = getPulsePressureRMS(rms_window_size);
-                        c.print(rms_val);
-                        c.print(" at pressure ");
-                        c.print(avg_pressure);
-                        c.print("mmHg\n");
+                        logger(l_info, "Measurement taken, %f at pressure %d mmHg\n", rms_val, avg_pressure);
+                        /* logger(l_info, rms_val); */
+                        /* logger(l_info, " at pressure "); */
+                        /* logger(l_info, avg_pressure); */
+                        /* logger(l_info, "mmHg\n"); */
                         // 2. Store it in the pulse pressure array
                         pulse_rms_measurements.push_back(rms_val);
                         pressure_measurements.push_back(avg_pressure);
@@ -419,12 +416,12 @@ public:
             }
             case calculate:
             {
-                c.print("rms_vals = [");
+                logger(l_info, "rms_vals = [");
                 for (int i = 0; i < pulse_rms_measurements.size(); i ++) {
-                    c.print(pulse_rms_measurements[i]);
-                    c.print(", ");
+                    /* logger(l_info, pulse_rms_measurements[i]); */
+                    logger(l_info, "%f, ", pulse_rms_measurements[i]);
                 }
-                c.print("];\n");
+                logger(l_info, "];\n");
                 int rms_max_idx = max_idx(pulse_rms_measurements);
                 double rms_max = max(pulse_rms_measurements);
                 double rms_min = min(pulse_rms_measurements);
