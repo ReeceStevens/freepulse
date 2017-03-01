@@ -1,10 +1,7 @@
-#include "UART.h"
+#include "Logger.h"
 #include "Timer.h"
 #include "Display.h"
 #include "Utils.h"
-
-Console c(USART1, 115200);
-volatile uint32_t pulse_clock = 0;
 #include "interface.h"
 #include "Signals.h"
 
@@ -89,7 +86,6 @@ void systemInit() {
 
 int main(void)
 {
-    initialize_logging();
     logger(l_info, "Starting up...\n");
     systemInit();
     logger(l_info, "Welcome to FreePulse!\n");

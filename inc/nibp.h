@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "GPIO.h"
-#include "Console.h"
+#include "Logger.h"
 #include "Utils.h"
 #include "Timer.h"
 #include "CircleBuffer.h"

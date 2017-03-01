@@ -1,26 +1,7 @@
-#ifndef __console_h__
-#define __console_h__
+#ifndef __logger_h__
+#define __logger_h__
 
 #include <stdio.h>
-
-#include "USART.h"
-
-/* struct __FILE { */
-/*     int dummy; */
-/* }; */
-
-FILE __stdout;
-
-int fputc(int ch, FILE *f) {
-    while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-    USART_SendData(USART1, (uint8_t)ch);
-    return ch;
-};
-
-void initialize_logging() {
-    USART_Interface console = USART_Interface(USART_1, USART_TX, 115200);
-    console.configure();
-};
 
 enum log_level {
     l_info, l_warn, l_error, l_fatal
@@ -55,24 +36,5 @@ static inline const char* log_level_color(log_level level) {
     printf("%s%-5s | %s:%d:%s() ", log_level_color(LEVEL), log_level_name(LEVEL), __FILE__, __LINE__, __func__); \
     printf(fmt);
 #endif
-
-/* class Console { */
-/* private: */
-/*     USART_Interface usart_x; */
-
-/* public: */
-/*     Console(USART_TypeDef* USARTx, int baudrate) { */
-/*         this->usart_x = USART_Interface(USARTx, baudrate); */
-/*         this->usart_x.configure(); */
-/*     } */
-
-/*     void log(const char* message) { */
-/*         this->usart_x.print(message); */
-/*     } */
-
-/*     void log(const int value) { */
-/*         this->usart_x.print(value); */
-/*     } */
-/* }; */
 
 #endif
