@@ -6,8 +6,8 @@ PROJ_NAME=freepulse
 
 
 # This is the directory containing the firmware package
-STM_DIR=/home/reece/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
-PERIPH_DRIVERS_DIR = /home/reece/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS
+STM_DIR = /Users/reecestevens/projects/freepulse/tools/STM32F4-Discovery_FW_V1.1.0
+PERIPH_DRIVERS_DIR = /Users/reecestevens/projects/freepulse/tools/STM32F4_STANDARD_PERIPHERAL_DRIVERS
 
 # This is where the source files are located,
 # which are not in the current directory
@@ -25,7 +25,7 @@ vpath %.cpp $(SRC_DIRS)
 
 SRCS   = main.cpp
 SRCS  += system_stm32f4xx.c
-SRCS  += stm32f4xx_rcc.c 
+SRCS  += stm32f4xx_rcc.c
 SRCS  += stm32f4xx_gpio.c
 SRCS  += stm32f4xx_spi.c
 SRCS  += stm32f4xx_adc.c
