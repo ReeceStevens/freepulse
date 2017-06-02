@@ -1,6 +1,8 @@
 #ifndef __CircleBuffer_h__
 #define __CircleBuffer_h__ 1
 
+#include "Vector.h"
+
 template <typename T>
 
 class CircleBuffer {
@@ -78,6 +80,16 @@ public:
 	T& newest(void) {
 		return data[mod(next-1, length)]; 
 	}
+
+    void copy_to_vector(Vector<T>& vec) {
+        vec.empty();
+        if (vec.size() != this->length) {
+            vec.resize(this->length);
+        }
+        for (int i = 0; i < this->length; i++) {
+            vec.push_back(this[i]);
+        }
+    }
 
 	static int mod(int a, int b) {
 		if (b > 0){

@@ -45,6 +45,12 @@ public:
         }
     }
 
+    void initialize() {
+        tft->fillScreen(RA8875_BLACK);
+        tft->clearTouchEvents();
+        this->initialDraw();
+    }
+
 };
 
 

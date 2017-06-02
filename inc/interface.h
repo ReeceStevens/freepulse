@@ -12,25 +12,56 @@
 #define SCREEN_ROWS 12
 #define SCREEN_COLUMNS 12
 
-enum layout{
-	home, settings	
-};
+volatile uint32_t pulse_clock = 0;
 
 SPI_Interface display_spi(DISPLAY_SPI);
 Display tft(DISPLAY_CS, DISPLAY_RESET, DISPLAY_WAIT, &display_spi, SCREEN_ROWS, SCREEN_COLUMNS);
 
-layout currentMode = home;
+Screen mainScreen = Screen(&tft);
+Screen settingsScreen = Screen(&tft);
+Screen *currentScreen = &mainScreen;
+bool screen_change = true;
+
+/*
+ * This function is called by a Timer or Systick Handler
+ * and updates interface components (this includes redrawing
+ * the screen and propogating touch events).
+ */
+void interfaceUpdate(Screen screen) {
+    if (screen_change) {
+        screen.initialize();
+        screen_change = false;
+    }
+    screen.update();
+    screen.readTouch();
+#ifdef DEBUG
+    tft.drawPixel(tft.touch_points[0],tft.touch_points[1], RA8875_WHITE);
+#endif
+}
+
+extern "C" void SysTick_Handler(void) {
+    pulse_clock += 1;
+    // TODO: Run tests to figure out what display refresh rate works best.
+    // Want to have the lowest possible refresh rate without compromising
+    // display responsiveness to the user.
+    if (pulse_clock % 1000 == 0) { // TODO: make this less slow.
+        interfaceUpdate(*currentScreen);
+    }
+}
 
 void openSettings(void) {
-    currentMode = settings;
+    currentScreen = &settingsScreen;
+    screen_change = true;
 };
 
 void saveAlarmChanges(void) {
-    currentMode = home;
+    currentScreen = &mainScreen;
+    screen_change = true;
 };
 
 void cancelAlarmChanges(void) {
-    currentMode = home;
+    currentScreen = &mainScreen;
+    screen_change = true;
 };
 
 void restoreDefaultAlarms(void) {};
@@ -56,19 +87,19 @@ LargeNumberView heartrate = LargeNumberView(3,10,2,3,RA8875_BLACK,
                             RA8875_GREEN,true,60,&tft);
 
 void composeMainScreen(Screen& s) {
-    /* s.add(&settings_button); */
+    s.add(&settings_button);
     s.add(&title);
     s.add(&version);
     s.add(&hr_label);
     s.add(&spo2_label);
     s.add(&heartrate);
-    /* mainScreen.add(ecg.signalTrace); */
+    /* s.add(&(ecg.signalTrace)); */
 }
 
 void composeSettingsScreen(Screen& s) {
-    /* s.add(&confirm_button); */
-    /* s.add(&default_button); */
-    /* s.add(&cancel_button); */
+    s.add(&confirm_button);
+    s.add(&default_button);
+    s.add(&cancel_button);
 }
 
 #endif

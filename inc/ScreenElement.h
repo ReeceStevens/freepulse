@@ -34,6 +34,23 @@ public:
 
     virtual void draw(void){};
     virtual void update(void){};
+
+    ScreenElement* set_position(int row, int column) {
+        this->row = row;
+        this->column = column;
+        coord_x = tft->horizontal_scale*(column-1);
+        coord_y = tft->vertical_scale*(row-1);
+        return this;
+    }
+
+    ScreenElement* set_dimensions(int len, int width) {
+        this->len = len;
+        this->width = width;
+        real_len = tft->vertical_scale*len;
+        real_width = tft->horizontal_scale*width;
+        return this;
+    }
+
 };
 
 class Button : public ScreenElement{
@@ -46,6 +63,8 @@ public:
     bool visible;
     bool lastTapped;
     void (*reducer) (void);
+
+    Button() {};
 
     Button(int row, int column, int len, int width, int color, const char* button_str, bool visible, Display* tft, void (*reducer) (void)):
         ScreenElement(row,column,len,width,tft), color(color), button_str(button_str),visible(visible),reducer(reducer){ 

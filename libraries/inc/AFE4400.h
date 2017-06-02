@@ -121,15 +121,15 @@ private:
      * fc1 = 0.5 Hz
      * fc2 = 3 Hz
      */
-	double display_sos_filter[5][6] = {
-		{1, 0, -1, 1, -1.9822, 0.9836},
-		{1, 0, -1, 1, -1.9971, 0.9971},
-		{1, 0, -1, 1, -1.9903, 0.9904},
-		{1, 0, -1, 1, -1.9587, 0.9597},
-		{1, 0, -1, 1, -1.9688, 0.9691},
-	};
+    double display_sos_filter[5][6] = {
+        {1, 0, -1, 1, -1.9822, 0.9836},
+        {1, 0, -1, 1, -1.9971, 0.9971},
+        {1, 0, -1, 1, -1.9903, 0.9904},
+        {1, 0, -1, 1, -1.9587, 0.9597},
+        {1, 0, -1, 1, -1.9688, 0.9691},
+    };
 
-	double display_gain[5] = {0.0156, 0.0156, 0.0155, 0.0155, 0.0155};
+    double display_gain[5] = {0.0156, 0.0156, 0.0155, 0.0155, 0.0155};
 
 
     /*
@@ -137,150 +137,150 @@ private:
      *
      */
     double sampling_sos_filter[5][6] = {
-		{1, 2, 1, 1, -1.9461, 0.9615},
-		{1, 2, 1, 1, -1.8774, 0.8923},
-		{1, 2, 1, 1, -1.8227, 0.8372},
-		{1, 2, 1, 1, -1.7849, 0.7991},
-		{1, 2, 1, 1, -1.7657, 0.7797},
+        {1, 2, 1, 1, -1.9461, 0.9615},
+        {1, 2, 1, 1, -1.8774, 0.8923},
+        {1, 2, 1, 1, -1.8227, 0.8372},
+        {1, 2, 1, 1, -1.7849, 0.7991},
+        {1, 2, 1, 1, -1.7657, 0.7797},
     };
 
-	double sampling_gain[5] = {0.0039, 0.0037, 0.0036, 0.0035, 0.0035};
+    double sampling_gain[5] = {0.0039, 0.0037, 0.0036, 0.0035, 0.0035};
     /*
      * 10th order IIR Butterworth filter
      * fc1 = 1 Hz
      * fc2 = 4 Hz
      */
-	/* double display_sos_filter[5][6] = { */
-	/* 	{1, 0, -1, 1, -1.9793, 0.9817}, */
-	/* 	{1, 0, -1, 1, -1.9950, 0.9952}, */
-	/* 	{1, 0, -1, 1, -1.9547, 0.9563}, */
-	/* 	{1, 0, -1, 1, -1.9835, 0.9838}, */
-	/* 	{1, 0, -1, 1, -1.9624, 0.9630}, */
-	/* }; */
+    /* double display_sos_filter[5][6] = { */
+    /*     {1, 0, -1, 1, -1.9793, 0.9817}, */
+    /*     {1, 0, -1, 1, -1.9950, 0.9952}, */
+    /*     {1, 0, -1, 1, -1.9547, 0.9563}, */
+    /*     {1, 0, -1, 1, -1.9835, 0.9838}, */
+    /*     {1, 0, -1, 1, -1.9624, 0.9630}, */
+    /* }; */
 
-	/* double display_gain[5] = {0.0187, 0.0187, 0.0186, 0.0186, 0.0185}; */
+    /* double display_gain[5] = {0.0187, 0.0187, 0.0186, 0.0186, 0.0185}; */
 
     /*
      * 10th order IIR Butterworth filter
      * fc1 = 0.1 Hz
      * fc2 = 4 Hz
      */
-	/* double display_sos_filter[5][6] = { */
-	/* 	{1, 0, -1, 1, -1.9684, 0.9709}, */
-	/* 	{1, 0, -1, 1, -1.9993, 0.9993}, */
-	/* 	{1, 0, -1, 1, -1.9979, 0.9979}, */
-	/* 	{1, 0, -1, 1, -1.9234, 0.9257}, */
-	/* 	{1, 0, -1, 1, -1.9521, 0.9522}, */
-	/* }; */
+    /* double display_sos_filter[5][6] = { */
+    /*     {1, 0, -1, 1, -1.9684, 0.9709}, */
+    /*     {1, 0, -1, 1, -1.9993, 0.9993}, */
+    /*     {1, 0, -1, 1, -1.9979, 0.9979}, */
+    /*     {1, 0, -1, 1, -1.9234, 0.9257}, */
+    /*     {1, 0, -1, 1, -1.9521, 0.9522}, */
+    /* }; */
 
-	/* double display_gain[5] = {0.0243, 0.0243, 0.0240, 0.0240, 0.0239}; */
-	double red_xs[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	double red_ws[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
+    /* double display_gain[5] = {0.0243, 0.0243, 0.0240, 0.0240, 0.0239}; */
+    double red_xs[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    double red_ws[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
 
-	double filter_red(int32_t x) {
-		red_xs[0][0] = (double) x;
-		double y;
-		for (int i = 0; i < 5; i ++){
-			red_xs[i][0] *= sampling_gain[i];
-			// Apply SOS
-			red_ws[i][0] = red_xs[i][0] - sampling_sos_filter[i][4]*red_ws[i][1] - sampling_sos_filter[i][5]*red_ws[i][2];
-			y = sampling_sos_filter[i][0]*red_ws[i][0] + sampling_sos_filter[i][1]*red_ws[i][1] + sampling_sos_filter[i][2]*red_ws[i][2]; 
-			// Shift coefficients
-			red_xs[i][2] = red_xs[i][1];
-			red_xs[i][1] = red_xs[i][0];
-			red_ws[i][2] = red_ws[i][1];
-			red_ws[i][1] = red_ws[i][0];
-			// Carry over to next section
-			if (i != 4) {
-				red_xs[i+1][0] = y;	
-			}
-		}
+    double filter_red(int32_t x) {
+        red_xs[0][0] = (double) x;
+        double y;
+        for (int i = 0; i < 5; i ++){
+            red_xs[i][0] *= sampling_gain[i];
+            // Apply SOS
+            red_ws[i][0] = red_xs[i][0] - sampling_sos_filter[i][4]*red_ws[i][1] - sampling_sos_filter[i][5]*red_ws[i][2];
+            y = sampling_sos_filter[i][0]*red_ws[i][0] + sampling_sos_filter[i][1]*red_ws[i][1] + sampling_sos_filter[i][2]*red_ws[i][2]; 
+            // Shift coefficients
+            red_xs[i][2] = red_xs[i][1];
+            red_xs[i][1] = red_xs[i][0];
+            red_ws[i][2] = red_ws[i][1];
+            red_ws[i][1] = red_ws[i][0];
+            // Carry over to next section
+            if (i != 4) {
+                red_xs[i+1][0] = y;    
+            }
+        }
         return y;
-	}
+    }
 
-	double ir_xs[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	double ir_ws[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
+    double ir_xs[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    double ir_ws[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
 
-	double filter_ir(int32_t x) {
-		ir_xs[0][0] = (double) x;
-		double y;
-		for (int i = 0; i < 5; i ++){
-			ir_xs[i][0] *= sampling_gain[i];
-			// Apply SOS
-			ir_ws[i][0] = ir_xs[i][0] - sampling_sos_filter[i][4]*ir_ws[i][1] - sampling_sos_filter[i][5]*ir_ws[i][2];
-			y = sampling_sos_filter[i][0]*ir_ws[i][0] + sampling_sos_filter[i][1]*ir_ws[i][1] + sampling_sos_filter[i][2]*ir_ws[i][2]; 
-			// Shift coefficients
-			ir_xs[i][2] = ir_xs[i][1];
-			ir_xs[i][1] = ir_xs[i][0];
-			ir_ws[i][2] = ir_ws[i][1];
-			ir_ws[i][1] = ir_ws[i][0];
-			// Carry over to next section
-			if (i != 4) {
-				ir_xs[i+1][0] = y;	
-			}
-		}
+    double filter_ir(int32_t x) {
+        ir_xs[0][0] = (double) x;
+        double y;
+        for (int i = 0; i < 5; i ++){
+            ir_xs[i][0] *= sampling_gain[i];
+            // Apply SOS
+            ir_ws[i][0] = ir_xs[i][0] - sampling_sos_filter[i][4]*ir_ws[i][1] - sampling_sos_filter[i][5]*ir_ws[i][2];
+            y = sampling_sos_filter[i][0]*ir_ws[i][0] + sampling_sos_filter[i][1]*ir_ws[i][1] + sampling_sos_filter[i][2]*ir_ws[i][2]; 
+            // Shift coefficients
+            ir_xs[i][2] = ir_xs[i][1];
+            ir_xs[i][1] = ir_xs[i][0];
+            ir_ws[i][2] = ir_ws[i][1];
+            ir_ws[i][1] = ir_ws[i][0];
+            // Carry over to next section
+            if (i != 4) {
+                ir_xs[i+1][0] = y;    
+            }
+        }
         return y;
-	}
+    }
 
-	double d_xs[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
-	double d_ws[5][3] = {
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0},
-		{0, 0, 0}
-	};
+    double d_xs[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+    double d_ws[5][3] = {
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
 
-	double filter_display(int32_t x) {
-		d_xs[0][0] = (double) x;
-		double y;
-		for (int i = 0; i < 5; i ++){
-			d_xs[i][0] *= display_gain[i];
-			// Apply SOS
-			d_ws[i][0] = d_xs[i][0] - display_sos_filter[i][4]*d_ws[i][1] - display_sos_filter[i][5]*d_ws[i][2];
-			y = display_sos_filter[i][0]*d_ws[i][0] + display_sos_filter[i][1]*d_ws[i][1] + display_sos_filter[i][2]*d_ws[i][2]; 
-			// Shift coefficients
-			d_xs[i][2] = d_xs[i][1];
-			d_xs[i][1] = d_xs[i][0];
-			d_ws[i][2] = d_ws[i][1];
-			d_ws[i][1] = d_ws[i][0];
-			// Carry over to next section
-			if (i != 4) {
-				d_xs[i+1][0] = y;
-			}
-		}
+    double filter_display(int32_t x) {
+        d_xs[0][0] = (double) x;
+        double y;
+        for (int i = 0; i < 5; i ++){
+            d_xs[i][0] *= display_gain[i];
+            // Apply SOS
+            d_ws[i][0] = d_xs[i][0] - display_sos_filter[i][4]*d_ws[i][1] - display_sos_filter[i][5]*d_ws[i][2];
+            y = display_sos_filter[i][0]*d_ws[i][0] + display_sos_filter[i][1]*d_ws[i][1] + display_sos_filter[i][2]*d_ws[i][2]; 
+            // Shift coefficients
+            d_xs[i][2] = d_xs[i][1];
+            d_xs[i][1] = d_xs[i][0];
+            d_ws[i][2] = d_ws[i][1];
+            d_ws[i][1] = d_ws[i][0];
+            // Carry over to next section
+            if (i != 4) {
+                d_xs[i+1][0] = y;
+            }
+        }
         return y;
-	}
+    }
 
     /*
      * writeData() - Put 24-bit data into a target register
@@ -439,9 +439,9 @@ public:
         this->rst = rst;
         this->adc_rdy = adc_rdy; // Fixed pin for now, will generalize later.
         this->adc_pdn = adc_pdn;
-		configure_GPIO(cs, NO_PU_PD, OUTPUT);
-		configure_GPIO(rst, NO_PU_PD, OUTPUT);
-		configure_GPIO(adc_pdn, NO_PU_PD, OUTPUT);
+        configure_GPIO(cs, NO_PU_PD, OUTPUT);
+        configure_GPIO(rst, NO_PU_PD, OUTPUT);
+        configure_GPIO(adc_pdn, NO_PU_PD, OUTPUT);
         configure_GPIO(adc_rdy, NO_PU_PD, INPUT);
         digitalWrite(cs, HIGH);
         digitalWrite(adc_pdn, LOW);
@@ -456,15 +456,17 @@ public:
     bool self_check() {
         logger(l_info, "Beginning Self Check... \n");
         for (int i = 0; i < 5; i++) {
-            logger(l_info, "%d\n", readData(CONTROL1));
-            /* logger(l_info, "\n"); */
+            uint16_t control_data = readData(CONTROL1);
+            logger(l_info, "%d\n", control_data);
         }
-        logger(l_info, "Finished Self Check\n");
-        return readData(CONTROL1) != 0;
+        bool success = readData(CONTROL1) != 0;
+        if (success) { logger(l_info, "SpO2 self check passed."); }
+        else { logger(l_error, "SpO2 self check failed."); }
+        return success;
     }
 
     void enable() {
-		SPI->begin();
+        SPI->begin();
         digitalWrite(adc_pdn, HIGH);
         delay(100000);
         digitalWrite(rst, HIGH);
@@ -520,11 +522,11 @@ public:
     }
 
     void pulse_rate_check(int32_t new_val) {
-		int adjusted_new_val = (new_val - signalTrace->min_signal_value);
-		int display_val = adjusted_new_val * real_len;
-		display_val /= (signalTrace->max_signal_value - signalTrace->min_signal_value);
-		if (display_val > signalTrace->real_len) { display_val = signalTrace->real_len; }
-		else if (display_val < 0) { display_val = 0; }
+        int adjusted_new_val = (new_val - signalTrace->min_signal_value);
+        int display_val = adjusted_new_val * real_len;
+        display_val /= (signalTrace->max_signal_value - signalTrace->min_signal_value);
+        if (display_val > signalTrace->real_len) { display_val = signalTrace->real_len; }
+        else if (display_val < 0) { display_val = 0; }
         switch(pulse_state) {
             case up:
                 if (display_val < pulse_threshold) {
@@ -562,7 +564,7 @@ public:
 
     int sample(void) {
         int32_t ir_raw_data = getLED1Data();
-        int32_t ir_data = filter_ir(ir_raw_data);
+        int32_t ir_data = filter_ir(ir_raw_data); // TODO: red and ir shouldn't have different filters!
         int32_t display_val = filter_display(ir_raw_data) + 500;
         display_signal.add(display_val);
         red_signal.add((int32_t)filter_red(getLED2Data()));
